@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.hida"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.hida"
@@ -41,6 +39,7 @@ android {
     }
 }
 
+dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
