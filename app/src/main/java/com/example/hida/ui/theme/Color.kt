@@ -34,3 +34,6 @@ val DarkModeOrange = Color(0xFF7F7F85) // The division/mult keys in the image lo
 val LightModeBg = Color(0xFFE0E5EC)
 val LightModeBtn = Color(0xFFFFFFFF)
 val LightModeAccent = Color(0xFFD1D9E6)
+
+// Gallery accent color
+val GoldAccent = Color(0xFFFF9F0A)

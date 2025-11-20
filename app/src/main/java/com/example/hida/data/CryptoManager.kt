@@ -30,8 +30,8 @@ class CryptoManager(private val context: Context) {
 
     private fun getEncryptedFile(file: File): EncryptedFile {
         return EncryptedFile.Builder(
-            context,
             file,
+            context,
             masterKey,
             EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
         ).build()

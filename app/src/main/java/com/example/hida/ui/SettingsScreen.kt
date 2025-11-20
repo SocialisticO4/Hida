@@ -179,7 +179,7 @@ fun SettingsItem(title: String, subtitle: String, icon: ImageVector, onClick: ()
 @Composable
 fun IconGridItem(option: IconOption, isSelected: Boolean, onSelect: () -> Unit) {
     Column(
-        horizontalAlignment = Alignment.CenterAlignment,
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(if (isSelected) Color(0xFF3A3A3C) else Color(0xFF1C1C1E))
