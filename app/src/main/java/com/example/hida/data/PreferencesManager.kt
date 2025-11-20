@@ -11,9 +11,9 @@ class PreferencesManager(private val context: Context) {
         .build()
 
     private val sharedPreferences = EncryptedSharedPreferences.create(
+        context,
         "secure_prefs",
         masterKey,
-        context,
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
