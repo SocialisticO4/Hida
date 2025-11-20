@@ -1,0 +1,81 @@
+package com.example.hida.ui
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.hida.data.MediaRepository
+
+sealed class Screen(val route: String) {
+    object Calculator : Screen("calculator_screen")
+    object Gallery : Screen("gallery_screen/{mode}") {
+        fun createRoute(mode: String) = "gallery_screen/$mode"
+    }
+    object Settings : Screen("settings_screen")
+    object VideoPlayer : Screen("video_player/{filePath}") {
+        fun createRoute(filePath: String) = "video_player/$filePath"
+    }
+}
+
+@Composable
+fun NavigationGraph(navController: NavHostController = rememberNavController()) {
+    val context = LocalContext.current
+    val repository = remember { MediaRepository(context) }
+
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Calculator.route
+    ) {
+        composable(route = Screen.Calculator.route) {
+            CalculatorScreen(
+                onUnlock = { isFake ->
+                    val mode = if (isFake) "fake" else "real"
+                    navController.navigate(Screen.Gallery.createRoute(mode)) {
+                        popUpTo(Screen.Calculator.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(
+            route = Screen.Gallery.route,
+            arguments = listOf(navArgument("mode") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val mode = backStackEntry.arguments?.getString("mode") ?: "real"
+            GalleryScreen(
+                isFakeMode = mode == "fake",
+                onLock = {
+                    navController.navigate(Screen.Calculator.route) {
+                        popUpTo(Screen.Gallery.route) { inclusive = true }
+                    }
+                },
+                onSettingsClick = {
+                    navController.navigate(Screen.Settings.route)
+                },
+                onPlayVideo = { filePath ->
+                    // Encode path if necessary, but for local files simple string usually works
+                    // unless it has special chars. For safety, we can just pass it.
+                    navController.navigate(Screen.VideoPlayer.createRoute(filePath))
+                }
+            )
+        }
+        composable(
+            route = Screen.VideoPlayer.route,
+            arguments = listOf(navArgument("filePath") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val filePath = backStackEntry.arguments?.getString("filePath")
+            if (filePath != null) {
+                VideoPlayerScreen(filePath = filePath, repository = repository)
+            }
+        }
+        composable(route = Screen.Settings.route) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+    }
+}

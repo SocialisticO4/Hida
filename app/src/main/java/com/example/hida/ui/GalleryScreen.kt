@@ -1,0 +1,248 @@
+package com.example.hida.ui
+
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.hida.data.MediaRepository
+import com.example.hida.ui.theme.DarkBackground
+import com.example.hida.ui.theme.GoldAccent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GalleryScreen(
+    isFakeMode: Boolean = false,
+    onLock: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onPlayVideo: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repository = remember { MediaRepository(context) }
+    var mediaFiles by remember { mutableStateOf(emptyList<File>()) }
+
+    // Load media on start
+    LaunchedEffect(Unit) {
+        if (!isFakeMode) {
+            mediaFiles = withContext(Dispatchers.IO) {
+                repository.getMediaFiles()
+            }
+        } else {
+            mediaFiles = emptyList()
+        }
+    }
+
+    val deleteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            // Deletion confirmed by user
+        }
+    }
+
+    val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                repository.saveMediaFromUri(uri)
+                // Refresh list
+                mediaFiles = withContext(Dispatchers.IO) {
+                    repository.getMediaFiles()
+                }
+                
+                // Attempt to delete original
+                val intentSender = repository.deleteOriginal(uri)
+                if (intentSender != null) {
+                    val request = androidx.activity.result.IntentSenderRequest.Builder(intentSender).build()
+                    deleteLauncher.launch(request)
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        containerColor = DarkBackground, // Enforce dark theme for premium feel
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            text = "Gallery",
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isFakeMode) {
+                            Text(
+                                "Public Mode",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    Row {
+                        if (!isFakeMode) {
+                            IconButton(
+                                onClick = onSettingsClick,
+                                modifier = Modifier
+                                    .padding(end = 8.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.White.copy(alpha = 0.1f))
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                            }
+                        }
+                        IconButton(
+                            onClick = onLock,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White.copy(alpha = 0.1f))
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock", tint = Color.White)
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            )
+        },
+        floatingActionButton = {
+            if (!isFakeMode) {
+                FloatingActionButton(
+                    onClick = {
+                        pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                    },
+                    containerColor = GoldAccent,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Media")
+                }
+            }
+        }
+    ) { padding ->
+        if (mediaFiles.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isFakeMode) "No media found." else "No hidden media.\nTap + to add photos or videos.",
+                    color = Color.Gray,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                contentPadding = PaddingValues(
+                    start = 2.dp,
+                    end = 2.dp,
+                    top = padding.calculateTopPadding(),
+                    bottom = 80.dp
+                ),
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                items(mediaFiles) { file ->
+                    MediaItem(
+                        file = file,
+                        repository = repository,
+                        onClick = {
+                            if (repository.isVideo(file)) {
+                                onPlayVideo(file.absolutePath)
+                            } else {
+                                // TODO: Open full screen image viewer
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MediaItem(
+    file: File,
+    repository: MediaRepository,
+    onClick: () -> Unit
+) {
+    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val isVideo = remember(file) { repository.isVideo(file) }
+
+    LaunchedEffect(file) {
+        withContext(Dispatchers.IO) {
+            try {
+                if (!isVideo) {
+                    val stream = repository.getDecryptedStream(file)
+                    bitmap = BitmapFactory.decodeStream(stream)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .background(Color(0xFF1C1C1E))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (isVideo) {
+            // Video Placeholder / Thumbnail
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayCircle,
+                    contentDescription = "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        } else {
+            bitmap?.let { bmp ->
+                Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } ?: CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+        }
+    }
+}
