@@ -22,8 +22,8 @@ class MediaRepository(private val context: Context) {
         }
     }
 
-    suspend fun saveMediaFromUri(uri: Uri) {
-        withContext(Dispatchers.IO) {
+    suspend fun saveMediaFromUri(uri: Uri): File? {
+        return withContext(Dispatchers.IO) {
             val inputStream = context.contentResolver.openInputStream(uri)
             val type = context.contentResolver.getType(uri)
             val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(type) ?: "dat"
@@ -32,6 +32,7 @@ class MediaRepository(private val context: Context) {
                 val filename = "${UUID.randomUUID()}.$extension"
                 val file = File(directory, filename)
                 cryptoManager.encryptToFile(input, file)
+                file
             }
         }
     }

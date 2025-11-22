@@ -34,65 +34,14 @@ fun ImageViewerScreen(
     val repository = remember { MediaRepository(context) }
     val file = File(filePath)
     var showDeleteDialog by remember { mutableStateOf(false) }
-    
-    // Load image asynchronously with aggressive downsampling
-    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(file) {
-        withContext(Dispatchers.IO) {
-            try {
-                // 1. Decode bounds only
-                val options = android.graphics.BitmapFactory.Options().apply {
-                    inJustDecodeBounds = true
-                }
-                repository.getDecryptedStream(file).use { stream ->
-                    android.graphics.BitmapFactory.decodeStream(stream, null, options)
-                }
-
-                // 2. Calculate inSampleSize (Target 1080p to be safe)
-                val reqWidth = 1080
-                val reqHeight = 1920
-                
-                var inSampleSize = 1
-                if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
-                    val halfHeight: Int = options.outHeight / 2
-                    val halfWidth: Int = options.outWidth / 2
-
-                    // Calculate the largest inSampleSize value that is a power of 2 and keeps both
-                    // height and width larger than the requested height and width.
-                    while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
-                        inSampleSize *= 2
-                    }
-                    // Ensure we downsample at least once if it's huge but close to the limit
-                    if (inSampleSize == 1 && (options.outHeight > 3000 || options.outWidth > 3000)) {
-                        inSampleSize = 2
-                    }
-                }
-
-                // 3. Decode with inSampleSize
-                val finalOptions = android.graphics.BitmapFactory.Options().apply {
-                    inJustDecodeBounds = false
-                    this.inSampleSize = inSampleSize
-                    this.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565 // Reduce memory by 50% (no alpha)
-                }
-                
-                repository.getDecryptedStream(file).use { stream ->
-                    val decoded = android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
-                    if (decoded != null) {
-                        bitmap = decoded
-                    } else {
-                        error = "Failed to decode image"
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                error = "Error: ${e.message}"
-            } catch (e: OutOfMemoryError) {
-                e.printStackTrace()
-                error = "Out of Memory"
+    // Custom ImageLoader for Encrypted Files
+    val imageLoader = remember {
+        coil.ImageLoader.Builder(context)
+            .components {
+                add(com.example.hida.data.EncryptedMediaFetcher.Factory(repository))
             }
-        }
+            .build()
     }
 
     Scaffold(
@@ -121,21 +70,16 @@ fun ImageViewerScreen(
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = "Full Screen Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
-                )
-            } else if (error != null) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Delete, "Error", tint = Color.Red, modifier = Modifier.size(48.dp))
-                    Text(text = error!!, color = Color.Red)
-                }
-            } else {
-                CircularProgressIndicator(color = Color.White)
-            }
+            AsyncImage(
+                model = coil.request.ImageRequest.Builder(context)
+                    .data(file)
+                    .crossfade(true)
+                    .build(),
+                imageLoader = imageLoader,
+                contentDescription = "Full Screen Image",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
         }
     }
 

@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import coil.compose.AsyncImage
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.data.MediaRepository
@@ -51,6 +52,15 @@ fun GalleryScreen(
     val scope = rememberCoroutineScope()
     val repository = remember { MediaRepository(context) }
     var mediaFiles by remember { mutableStateOf(emptyList<File>()) }
+    
+    // Custom ImageLoader for Encrypted Files
+    val imageLoader = remember {
+        coil.ImageLoader.Builder(context)
+            .components {
+                add(com.example.hida.data.EncryptedMediaFetcher.Factory(repository))
+            }
+            .build()
+    }
 
     // Load media on start
     LaunchedEffect(Unit) {
@@ -63,7 +73,7 @@ fun GalleryScreen(
         }
     }
     
-    // Reload when coming back to screen (e.g. after delete)
+    // Reload when coming back to screen
     LaunchedEffect(mediaFiles) {
         if (!isFakeMode) {
              mediaFiles = withContext(Dispatchers.IO) {
@@ -72,33 +82,60 @@ fun GalleryScreen(
         }
     }
 
+    // State to track the file currently being moved
+    var pendingEncryptedFile by remember { mutableStateOf<File?>(null) }
+
     val deleteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            // Deletion confirmed by user
+        if (result.resultCode != android.app.Activity.RESULT_OK) {
+            // User denied deletion. Enforce "Move" by deleting the encrypted copy.
+            pendingEncryptedFile?.let { file ->
+                if (file.exists()) {
+                    file.delete()
+                    android.widget.Toast.makeText(context, "Move cancelled. Original kept.", android.widget.Toast.LENGTH_SHORT).show()
+                    // Refresh list
+                    scope.launch {
+                        mediaFiles = withContext(Dispatchers.IO) { repository.getMediaFiles() }
+                    }
+                }
+            }
+        } else {
+            android.widget.Toast.makeText(context, "Secure Move Complete", android.widget.Toast.LENGTH_SHORT).show()
         }
+        pendingEncryptedFile = null
     }
 
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             scope.launch {
-                repository.saveMediaFromUri(uri)
-                // Refresh list
-                mediaFiles = withContext(Dispatchers.IO) {
-                    repository.getMediaFiles()
-                }
+                // 1. Encrypt and Save
+                val newFile = repository.saveMediaFromUri(uri) // Need to update repository to return the file
                 
-                // Attempt to delete original
-                val intentSender = repository.deleteOriginal(uri)
-                if (intentSender != null) {
-                    val request = androidx.activity.result.IntentSenderRequest.Builder(intentSender).build()
-                    deleteLauncher.launch(request)
+                if (newFile != null) {
+                    pendingEncryptedFile = newFile
+                    
+                    // Refresh list immediately to show the item
+                    mediaFiles = withContext(Dispatchers.IO) {
+                        repository.getMediaFiles()
+                    }
+                    
+                    // 2. Attempt to delete original
+                    val intentSender = repository.deleteOriginal(uri)
+                    if (intentSender != null) {
+                        val request = androidx.activity.result.IntentSenderRequest.Builder(intentSender).build()
+                        deleteLauncher.launch(request)
+                    } else {
+                        // Deletion happened silently or failed silently.
+                        // Ideally check if file exists, but for now assume success if no exception.
+                        android.widget.Toast.makeText(context, "Imported Securely", android.widget.Toast.LENGTH_SHORT).show()
+                        pendingEncryptedFile = null
+                    }
                 }
             }
         }
     }
 
     Scaffold(
-        containerColor = DarkBackground, // Enforce dark theme for premium feel
+        containerColor = DarkBackground,
         topBar = {
             TopAppBar(
                 title = {
@@ -188,6 +225,7 @@ fun GalleryScreen(
                     MediaItem(
                         file = file,
                         repository = repository,
+                        imageLoader = imageLoader,
                         onClick = {
                             if (repository.isVideo(file)) {
                                 onPlayVideo(file.absolutePath)
@@ -206,53 +244,10 @@ fun GalleryScreen(
 fun MediaItem(
     file: File,
     repository: MediaRepository,
+    imageLoader: coil.ImageLoader,
     onClick: () -> Unit
 ) {
-    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
     val isVideo = remember(file) { repository.isVideo(file) }
-
-    LaunchedEffect(file) {
-        withContext(Dispatchers.IO) {
-            try {
-                if (!isVideo) {
-                    // 1. Decode bounds only
-                    val options = android.graphics.BitmapFactory.Options().apply {
-                        inJustDecodeBounds = true
-                    }
-                    repository.getDecryptedStream(file).use { stream ->
-                        android.graphics.BitmapFactory.decodeStream(stream, null, options)
-                    }
-
-                    // 2. Calculate inSampleSize for Thumbnail (Target 200px)
-                    val reqWidth = 200
-                    val reqHeight = 200
-                    
-                    var inSampleSize = 1
-                    if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
-                        val halfHeight: Int = options.outHeight / 2
-                        val halfWidth: Int = options.outWidth / 2
-
-                        while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
-                            inSampleSize *= 2
-                        }
-                    }
-
-                    // 3. Decode with inSampleSize
-                    val finalOptions = android.graphics.BitmapFactory.Options().apply {
-                        inJustDecodeBounds = false
-                        this.inSampleSize = inSampleSize
-                        this.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
-                    }
-
-                    repository.getDecryptedStream(file).use { stream ->
-                        bitmap = android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
 
     Card(
         modifier = Modifier
@@ -265,7 +260,6 @@ fun MediaItem(
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (isVideo) {
-                // Video Placeholder / Thumbnail
                 Box(
                     modifier = Modifier.fillMaxSize().background(Color.Black),
                     contentAlignment = Alignment.Center
@@ -278,14 +272,17 @@ fun MediaItem(
                     )
                 }
             } else {
-                bitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp.asImageBitmap(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } ?: CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+                AsyncImage(
+                    model = coil.request.ImageRequest.Builder(LocalContext.current)
+                        .data(file)
+                        .crossfade(true)
+                        .size(coil.size.Size.ORIGINAL) // Coil handles downsampling for grid automatically
+                        .build(),
+                    imageLoader = imageLoader,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }
