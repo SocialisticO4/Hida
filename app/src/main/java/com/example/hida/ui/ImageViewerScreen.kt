@@ -34,9 +34,12 @@ fun ImageViewerScreen(
     val file = File(filePath)
     var showDeleteDialog by remember { mutableStateOf(false) }
     
-    // Load image asynchronously with downsampling to prevent OOM
-    val bitmap by produceState<android.graphics.Bitmap?>(initialValue = null, key1 = file) {
-        value = withContext(Dispatchers.IO) {
+    // Load image asynchronously with aggressive downsampling
+    var bitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(file) {
+        withContext(Dispatchers.IO) {
             try {
                 // 1. Decode bounds only
                 val options = android.graphics.BitmapFactory.Options().apply {
@@ -46,18 +49,23 @@ fun ImageViewerScreen(
                     android.graphics.BitmapFactory.decodeStream(stream, null, options)
                 }
 
-                // 2. Calculate inSampleSize
-                // Target max dimension (e.g., 2048px is usually safe for standard phones)
-                val reqWidth = 2048
-                val reqHeight = 2048
+                // 2. Calculate inSampleSize (Target 1080p to be safe)
+                val reqWidth = 1080
+                val reqHeight = 1920
                 
                 var inSampleSize = 1
                 if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
                     val halfHeight: Int = options.outHeight / 2
                     val halfWidth: Int = options.outWidth / 2
 
+                    // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+                    // height and width larger than the requested height and width.
                     while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
                         inSampleSize *= 2
+                    }
+                    // Ensure we downsample at least once if it's huge but close to the limit
+                    if (inSampleSize == 1 && (options.outHeight > 3000 || options.outWidth > 3000)) {
+                        inSampleSize = 2
                     }
                 }
 
@@ -65,17 +73,23 @@ fun ImageViewerScreen(
                 val finalOptions = android.graphics.BitmapFactory.Options().apply {
                     inJustDecodeBounds = false
                     this.inSampleSize = inSampleSize
+                    this.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565 // Reduce memory by 50% (no alpha)
                 }
                 
                 repository.getDecryptedStream(file).use { stream ->
-                    android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
+                    val decoded = android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
+                    if (decoded != null) {
+                        bitmap = decoded
+                    } else {
+                        error = "Failed to decode image"
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                null
+                error = "Error: ${e.message}"
             } catch (e: OutOfMemoryError) {
                 e.printStackTrace()
-                null
+                error = "Out of Memory"
             }
         }
     }
@@ -113,6 +127,11 @@ fun ImageViewerScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
+            } else if (error != null) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.Delete, "Error", tint = Color.Red, modifier = Modifier.size(48.dp))
+                    Text(text = error!!, color = Color.Red)
+                }
             } else {
                 CircularProgressIndicator(color = Color.White)
             }
