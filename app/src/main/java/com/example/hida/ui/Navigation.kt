@@ -17,6 +17,9 @@ sealed class Screen(val route: String) {
         fun createRoute(mode: String) = "gallery_screen/$mode"
     }
     object Settings : Screen("settings_screen")
+    object VideoPlayer : Screen("video_player/{filePath}") {
+        fun createRoute(filePath: String) = "video_player/$filePath"
+    }
     object ImageViewer : Screen("image_viewer/{filePath}") {
         fun createRoute(filePath: String) = "image_viewer/$filePath"
     }
