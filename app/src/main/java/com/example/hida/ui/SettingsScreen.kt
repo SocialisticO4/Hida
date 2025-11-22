@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,7 +47,7 @@ fun SettingsScreen(
                 title = { Text("Settings", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -100,7 +102,7 @@ fun SettingsScreen(
                 IconOption("Maps", "com.example.hida.MapsAlias", Icons.Default.Map),
                 IconOption("Phone", "com.example.hida.PhoneAlias", Icons.Default.Phone),
                 IconOption("Contacts", "com.example.hida.ContactsAlias", Icons.Default.Contacts),
-                IconOption("Messages", "com.example.hida.MessagesAlias", Icons.Default.Message),
+                IconOption("Messages", "com.example.hida.MessagesAlias", Icons.AutoMirrored.Filled.Message),
                 IconOption("Settings", "com.example.hida.SettingsAlias", Icons.Default.Settings),
                 IconOption("Play Store", "com.example.hida.PlayStoreAlias", Icons.Default.Shop),
                 IconOption("Drive", "com.example.hida.DriveAlias", Icons.Default.Cloud),
