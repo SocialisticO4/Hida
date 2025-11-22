@@ -200,18 +200,24 @@ fun CalculatorButton(
         else -> MaterialTheme.colorScheme.onSurface
     }
 
-    Box(
-        contentAlignment = Alignment.Center,
+    Surface(
         modifier = modifier
             .clip(if (symbol == "0") RoundedCornerShape(40.dp) else CircleShape)
-            .background(backgroundColor)
-            .clickable { onClick() }
+            .clickable { onClick() },
+        color = backgroundColor,
+        shape = if (symbol == "0") RoundedCornerShape(40.dp) else CircleShape,
+        shadowElevation = 6.dp // Add shadow for "pop" effect
     ) {
-        Text(
-            text = symbol,
-            fontSize = 32.sp,
-            color = contentColor,
-            fontWeight = FontWeight.Medium
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Text(
+                text = symbol,
+                fontSize = 32.sp,
+                color = contentColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }

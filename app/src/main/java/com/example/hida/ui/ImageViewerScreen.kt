@@ -29,12 +29,18 @@ fun ImageViewerScreen(
     val repository = remember { MediaRepository(context) }
     val file = File(filePath)
     var showDeleteDialog by remember { mutableStateOf(false) }
-
-    // Decrypt image on the fly
-    val imageRequest = remember(file) {
-        ImageRequest.Builder(context)
-            .data(ByteBuffer.wrap(repository.getDecryptedStream(file).readBytes()))
-            .build()
+    
+    // Load image asynchronously to prevent Main Thread lock / OOM
+    val bitmap by produceState<android.graphics.Bitmap?>(initialValue = null, key1 = file) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val stream = repository.getDecryptedStream(file)
+                android.graphics.BitmapFactory.decodeStream(stream)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
     }
 
     Scaffold(
@@ -63,12 +69,16 @@ fun ImageViewerScreen(
                 .background(Color.Black),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = "Full Screen Image",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Full Screen Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                CircularProgressIndicator(color = Color.White)
+            }
         }
     }
 

@@ -224,35 +224,39 @@ fun MediaItem(
         }
     }
 
-    Box(
+    Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .background(Color(0xFF1C1C1E))
+            .padding(2.dp)
             .clickable { onClick() },
-        contentAlignment = Alignment.Center
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1C1C1E))
     ) {
-        if (isVideo) {
-            // Video Placeholder / Thumbnail
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayCircle,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
+        Box(contentAlignment = Alignment.Center) {
+            if (isVideo) {
+                // Video Placeholder / Thumbnail
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayCircle,
+                        contentDescription = "Play",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            } else {
+                bitmap?.let { bmp ->
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } ?: CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
             }
-        } else {
-            bitmap?.let { bmp ->
-                Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } ?: CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
         }
     }
 }
