@@ -215,8 +215,38 @@ fun MediaItem(
         withContext(Dispatchers.IO) {
             try {
                 if (!isVideo) {
-                    val stream = repository.getDecryptedStream(file)
-                    bitmap = BitmapFactory.decodeStream(stream)
+                    // 1. Decode bounds only
+                    val options = android.graphics.BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    repository.getDecryptedStream(file).use { stream ->
+                        android.graphics.BitmapFactory.decodeStream(stream, null, options)
+                    }
+
+                    // 2. Calculate inSampleSize for Thumbnail (Target 200px)
+                    val reqWidth = 200
+                    val reqHeight = 200
+                    
+                    var inSampleSize = 1
+                    if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+                        val halfHeight: Int = options.outHeight / 2
+                        val halfWidth: Int = options.outWidth / 2
+
+                        while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                            inSampleSize *= 2
+                        }
+                    }
+
+                    // 3. Decode with inSampleSize
+                    val finalOptions = android.graphics.BitmapFactory.Options().apply {
+                        inJustDecodeBounds = false
+                        this.inSampleSize = inSampleSize
+                        this.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                    }
+
+                    repository.getDecryptedStream(file).use { stream ->
+                        bitmap = android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
