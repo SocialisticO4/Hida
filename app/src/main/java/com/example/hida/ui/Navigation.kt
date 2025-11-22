@@ -73,7 +73,10 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
         ) { backStackEntry ->
             val filePath = backStackEntry.arguments?.getString("filePath")
             if (filePath != null) {
-                VideoPlayerScreen(filePath = filePath, repository = repository)
+                VideoPlayerScreen(
+                    filePath = filePath,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
         composable(
