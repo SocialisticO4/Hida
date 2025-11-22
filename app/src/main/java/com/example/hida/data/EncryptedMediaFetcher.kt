@@ -17,11 +17,14 @@ class EncryptedMediaFetcher(
 
     override suspend fun fetch(): SourceResult {
         val inputStream = repository.getDecryptedStream(file)
-        val source = inputStream.source().buffer()
+        val bufferedSource = inputStream.source().buffer()
         
         return SourceResult(
-            source = source,
-            mimeType = null, // Coil will detect it
+            source = coil.decode.ImageSource(
+                source = bufferedSource,
+                file = file
+            ),
+            mimeType = null,
             dataSource = DataSource.DISK
         )
     }
