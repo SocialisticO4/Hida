@@ -74,6 +74,7 @@ fun ImageViewerScreen(
                 model = coil.request.ImageRequest.Builder(context)
                     .data(file)
                     .crossfade(true)
+                    .diskCachePolicy(coil.request.CachePolicy.DISABLED) // Secure: Memory only
                     .build(),
                 imageLoader = imageLoader,
                 contentDescription = "Full Screen Image",

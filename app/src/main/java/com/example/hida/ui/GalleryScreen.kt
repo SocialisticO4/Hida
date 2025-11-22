@@ -276,6 +276,7 @@ fun MediaItem(
                     model = coil.request.ImageRequest.Builder(LocalContext.current)
                         .data(file)
                         .crossfade(true)
+                        .diskCachePolicy(coil.request.CachePolicy.DISABLED) // Secure: Memory only
                         .size(coil.size.Size.ORIGINAL) // Coil handles downsampling for grid automatically
                         .build(),
                     imageLoader = imageLoader,
