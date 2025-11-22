@@ -1,5 +1,6 @@
 package com.example.hida.data
 
+import android.content.Context
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.fetch.Fetcher
@@ -12,7 +13,8 @@ import java.io.File
 
 class EncryptedMediaFetcher(
     private val file: File,
-    private val repository: MediaRepository
+    private val repository: MediaRepository,
+    private val context: Context
 ) : Fetcher {
 
     override suspend fun fetch(): SourceResult {
@@ -22,7 +24,7 @@ class EncryptedMediaFetcher(
         return SourceResult(
             source = coil.decode.ImageSource(
                 source = bufferedSource,
-                file = file
+                context = context
             ),
             mimeType = null,
             dataSource = DataSource.DISK
@@ -33,7 +35,7 @@ class EncryptedMediaFetcher(
         override fun create(data: File, options: Options, imageLoader: ImageLoader): Fetcher? {
             // Only handle files in the secure directory
             if (data.parentFile?.name == "secure_media") {
-                return EncryptedMediaFetcher(data, repository)
+                return EncryptedMediaFetcher(data, repository, options.context)
             }
             return null
         }
