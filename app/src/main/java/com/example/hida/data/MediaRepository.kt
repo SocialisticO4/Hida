@@ -8,6 +8,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
 import java.util.UUID
+import android.content.IntentSender
+import android.app.RecoverableSecurityException
 
 class MediaRepository(private val context: Context) {
 
@@ -48,15 +50,28 @@ class MediaRepository(private val context: Context) {
                file.extension.equals("mkv", ignoreCase = true)
     }
 
-    fun deleteOriginal(uri: Uri): android.content.IntentSender? {
+    fun deleteOriginal(uri: Uri): IntentSender? {
         try {
             context.contentResolver.delete(uri, null, null)
-            return null // Deleted successfully without permission needed
-        } catch (e: android.app.RecoverableSecurityException) {
+            return null
+        } catch (e: RecoverableSecurityException) {
             return e.userAction.actionIntent.intentSender
         } catch (e: Exception) {
             e.printStackTrace()
             return null
+        }
+    }
+
+    fun deleteMedia(file: File): Boolean {
+        return try {
+            if (file.exists()) {
+                file.delete()
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
         }
     }
 }

@@ -17,8 +17,8 @@ sealed class Screen(val route: String) {
         fun createRoute(mode: String) = "gallery_screen/$mode"
     }
     object Settings : Screen("settings_screen")
-    object VideoPlayer : Screen("video_player/{filePath}") {
-        fun createRoute(filePath: String) = "video_player/$filePath"
+    object ImageViewer : Screen("image_viewer/{filePath}") {
+        fun createRoute(filePath: String) = "image_viewer/$filePath"
     }
 }
 
@@ -57,9 +57,10 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
                     navController.navigate(Screen.Settings.route)
                 },
                 onPlayVideo = { filePath ->
-                    // Encode path if necessary, but for local files simple string usually works
-                    // unless it has special chars. For safety, we can just pass it.
                     navController.navigate(Screen.VideoPlayer.createRoute(filePath))
+                },
+                onViewImage = { filePath ->
+                    navController.navigate(Screen.ImageViewer.createRoute(filePath))
                 }
             )
         }
@@ -70,6 +71,18 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
             val filePath = backStackEntry.arguments?.getString("filePath")
             if (filePath != null) {
                 VideoPlayerScreen(filePath = filePath, repository = repository)
+            }
+        }
+        composable(
+            route = Screen.ImageViewer.route,
+            arguments = listOf(navArgument("filePath") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val filePath = backStackEntry.arguments?.getString("filePath")
+            if (filePath != null) {
+                ImageViewerScreen(
+                    filePath = filePath,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
         composable(route = Screen.Settings.route) {

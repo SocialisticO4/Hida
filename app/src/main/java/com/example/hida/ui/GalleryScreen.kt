@@ -44,7 +44,8 @@ fun GalleryScreen(
     isFakeMode: Boolean = false,
     onLock: () -> Unit,
     onSettingsClick: () -> Unit,
-    onPlayVideo: (String) -> Unit
+    onPlayVideo: (String) -> Unit,
+    onViewImage: (String) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -59,6 +60,15 @@ fun GalleryScreen(
             }
         } else {
             mediaFiles = emptyList()
+        }
+    }
+    
+    // Reload when coming back to screen (e.g. after delete)
+    LaunchedEffect(mediaFiles) {
+        if (!isFakeMode) {
+             mediaFiles = withContext(Dispatchers.IO) {
+                repository.getMediaFiles()
+            }
         }
     }
 
@@ -182,7 +192,7 @@ fun GalleryScreen(
                             if (repository.isVideo(file)) {
                                 onPlayVideo(file.absolutePath)
                             } else {
-                                // TODO: Open full screen image viewer
+                                onViewImage(file.absolutePath)
                             }
                         }
                     )
