@@ -1,39 +1,56 @@
 package com.example.hida.data
 
-import android.content.Context
-import androidx.security.crypto.EncryptedFile
-import androidx.security.crypto.MasterKey
-import java.io.File
-import java.io.InputStream
-import java.io.OutputStream
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
-class CryptoManager(private val context: Context) {
+class CryptoManager {
 
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply {
+        load(null)
+    }
 
-    fun encryptToFile(inputStream: InputStream, file: File) {
-        val encryptedFile = getEncryptedFile(file)
-        val outputStream = encryptedFile.openFileOutput()
-        inputStream.use { input ->
-            outputStream.use { output ->
-                input.copyTo(output)
-            }
+    private fun getKey(): SecretKey {
+        val existingKey = keyStore.getEntry(KEY_ALIAS, null) as? KeyStore.SecretKeyEntry
+        return existingKey?.secretKey ?: createKey()
+    }
+
+    private fun createKey(): SecretKey {
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+            .apply {
+                init(
+                    KeyGenParameterSpec.Builder(
+                        KEY_ALIAS,
+                        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                    )
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .setRandomizedEncryptionRequired(true) // Secure IV generation
+                        .build()
+                )
+            }.generateKey()
+    }
+
+    fun getEncryptCipher(): Cipher {
+        return Cipher.getInstance(TRANSFORMATION).apply {
+            init(Cipher.ENCRYPT_MODE, getKey())
         }
     }
 
-    fun decryptFromFile(file: File): InputStream {
-        val encryptedFile = getEncryptedFile(file)
-        return encryptedFile.openFileInput()
+    fun getDecryptCipher(iv: ByteArray): Cipher {
+        return Cipher.getInstance(TRANSFORMATION).apply {
+            val spec = GCMParameterSpec(128, iv)
+            init(Cipher.DECRYPT_MODE, getKey(), spec)
+        }
     }
 
-    private fun getEncryptedFile(file: File): EncryptedFile {
-        return EncryptedFile.Builder(
-            context,
-            file,
-            masterKey,
-            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
-        ).build()
+    companion object {
+        private const val KEY_ALIAS = "HidaVaultKey"
+        private const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val IV_SIZE = 12 // GCM Standard IV size
     }
 }
