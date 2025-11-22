@@ -34,13 +34,46 @@ fun ImageViewerScreen(
     val file = File(filePath)
     var showDeleteDialog by remember { mutableStateOf(false) }
     
-    // Load image asynchronously to prevent Main Thread lock / OOM
+    // Load image asynchronously with downsampling to prevent OOM
     val bitmap by produceState<android.graphics.Bitmap?>(initialValue = null, key1 = file) {
         value = withContext(Dispatchers.IO) {
             try {
-                val stream = repository.getDecryptedStream(file)
-                android.graphics.BitmapFactory.decodeStream(stream)
+                // 1. Decode bounds only
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                repository.getDecryptedStream(file).use { stream ->
+                    android.graphics.BitmapFactory.decodeStream(stream, null, options)
+                }
+
+                // 2. Calculate inSampleSize
+                // Target max dimension (e.g., 2048px is usually safe for standard phones)
+                val reqWidth = 2048
+                val reqHeight = 2048
+                
+                var inSampleSize = 1
+                if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+                    val halfHeight: Int = options.outHeight / 2
+                    val halfWidth: Int = options.outWidth / 2
+
+                    while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                        inSampleSize *= 2
+                    }
+                }
+
+                // 3. Decode with inSampleSize
+                val finalOptions = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = false
+                    this.inSampleSize = inSampleSize
+                }
+                
+                repository.getDecryptedStream(file).use { stream ->
+                    android.graphics.BitmapFactory.decodeStream(stream, null, finalOptions)
+                }
             } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            } catch (e: OutOfMemoryError) {
                 e.printStackTrace()
                 null
             }
