@@ -1,95 +1,86 @@
 package com.example.hida.ui.theme
 
 import android.app.Activity
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Material 3 Expressive Dark Color Scheme - Pure Black AMOLED
-private val ExpressiveDarkScheme = darkColorScheme(
-    primary = BlackCherry,
-    onPrimary = TextPrimary,
-    primaryContainer = BlackCherryDark,
-    onPrimaryContainer = TextPrimary,
+/**
+ * Material Design 3 Dark Color Scheme
+ * Generated from seed: #5D0E1D (Deep Black Cherry Red)
+ */
+private val MD3DarkColorScheme = darkColorScheme(
+    // Primary
+    primary = md3_dark_primary,
+    onPrimary = md3_dark_onPrimary,
+    primaryContainer = md3_dark_primaryContainer,
+    onPrimaryContainer = md3_dark_onPrimaryContainer,
     
-    secondary = AccentRedDim,
-    onSecondary = TextPrimary,
-    secondaryContainer = SurfaceContainer,
-    onSecondaryContainer = TextPrimary,
+    // Secondary
+    secondary = md3_dark_secondary,
+    onSecondary = md3_dark_onSecondary,
+    secondaryContainer = md3_dark_secondaryContainer,
+    onSecondaryContainer = md3_dark_onSecondaryContainer,
     
-    tertiary = BlackCherryLight,
-    onTertiary = TextPrimary,
-    tertiaryContainer = SurfaceContainerHigh,
-    onTertiaryContainer = TextPrimary,
+    // Tertiary
+    tertiary = md3_dark_tertiary,
+    onTertiary = md3_dark_onTertiary,
+    tertiaryContainer = md3_dark_tertiaryContainer,
+    onTertiaryContainer = md3_dark_onTertiaryContainer,
     
-    background = PureBlack,
-    onBackground = TextPrimary,
+    // Error
+    error = md3_dark_error,
+    onError = md3_dark_onError,
+    errorContainer = md3_dark_errorContainer,
+    onErrorContainer = md3_dark_onErrorContainer,
     
-    surface = SurfaceBlack,
-    onSurface = TextPrimary,
-    surfaceVariant = SurfaceElevated,
-    onSurfaceVariant = TextSecondary,
+    // Background & Surface
+    background = md3_dark_background,
+    onBackground = md3_dark_onBackground,
+    surface = md3_dark_surface,
+    onSurface = md3_dark_onSurface,
+    surfaceVariant = md3_dark_surfaceVariant,
+    onSurfaceVariant = md3_dark_onSurfaceVariant,
     
-    surfaceTint = SurfaceTint,
+    // Outline
+    outline = md3_dark_outline,
+    outlineVariant = md3_dark_outlineVariant,
     
-    error = ErrorRed,
-    onError = TextPrimary,
-    errorContainer = Color(0xFF3D0A0A),
-    onErrorContainer = TextPrimary,
+    // Inverse
+    inverseSurface = md3_dark_inverseSurface,
+    inverseOnSurface = md3_dark_inverseOnSurface,
+    inversePrimary = md3_dark_inversePrimary,
     
-    outline = TextTertiary,
-    outlineVariant = SurfaceContainer,
+    // Scrim
+    scrim = md3_dark_scrim,
     
-    inverseSurface = TextPrimary,
-    inverseOnSurface = PureBlack,
-    inversePrimary = BlackCherryDark,
-    
-    scrim = PureBlack
+    // Surface tint
+    surfaceTint = md3_dark_surfaceTint
 )
-
-// Motion specs for Material 3 Expressive
-object ExpressiveMotion {
-    val FastSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioLowBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
-    
-    val MediumSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    
-    val SlowSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessVeryLow
-    )
-}
 
 @Composable
 fun HidaTheme(
     content: @Composable () -> Unit
 ) {
-    val colorScheme = ExpressiveDarkScheme
-    
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+            // Use transparent status/nav bars for edge-to-edge
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
         }
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = ExpressiveTypography,
+        colorScheme = MD3DarkColorScheme,
+        typography = HidaTypography,
+        shapes = HidaShapes,
         content = content
     )
 }

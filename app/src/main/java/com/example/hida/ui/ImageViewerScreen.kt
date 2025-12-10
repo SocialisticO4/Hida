@@ -1,17 +1,10 @@
 package com.example.hida.ui
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -20,8 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -67,7 +59,7 @@ fun ImageViewerScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PureBlack)
+                .background(MaterialTheme.colorScheme.scrim)
                 .systemBarsPadding()
         ) {
             // Image with zoom and pan
@@ -129,10 +121,10 @@ fun ImageViewerScreen(
                         .fillMaxWidth()
                         .align(Alignment.TopCenter)
                         .background(
-                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                            Brush.verticalGradient(
                                 colors = listOf(
-                                    PureBlack.copy(alpha = 0.7f),
-                                    Color.Transparent
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
+                                    androidx.compose.ui.graphics.Color.Transparent
                                 )
                             )
                         )
@@ -140,24 +132,37 @@ fun ImageViewerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ExpressiveIconButton(
-                        icon = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
+                    FilledIconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onBack()
-                        }
-                    )
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = md3_dark_surfaceContainer.copy(alpha = 0.8f)
+                        )
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     
-                    ExpressiveIconButton(
-                        icon = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = ErrorRed,
+                    FilledIconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             showDeleteDialog = true
-                        }
-                    )
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
                 }
             }
 
@@ -165,20 +170,19 @@ fun ImageViewerScreen(
             if (showDeleteDialog) {
                 AlertDialog(
                     onDismissRequest = { showDeleteDialog = false },
-                    containerColor = SurfaceElevated,
-                    shape = RoundedCornerShape(28.dp),
+                    containerColor = md3_dark_surfaceContainerHigh,
+                    shape = HidaShapes.extraLarge,
                     title = {
                         Text(
                             "Delete permanently?",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = TextPrimary
+                            style = MaterialTheme.typography.headlineSmall
                         )
                     },
                     text = {
                         Text(
                             "This item will be permanently deleted from your vault.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     confirmButton = {
@@ -189,51 +193,16 @@ fun ImageViewerScreen(
                                 onBack()
                             }
                         ) {
-                            Text("Delete", color = ErrorRed)
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel", color = TextSecondary)
+                            Text("Cancel")
                         }
                     }
                 )
             }
         }
-    }
-}
-
-@Composable
-fun ExpressiveIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    tint: Color = TextPrimary,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.85f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "iconScale"
-    )
-
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier
-            .scale(scale)
-            .clip(CircleShape)
-            .background(SurfaceContainer.copy(alpha = 0.5f)),
-        interactionSource = interactionSource
-    ) {
-        Icon(
-            icon,
-            contentDescription = contentDescription,
-            tint = tint
-        )
     }
 }

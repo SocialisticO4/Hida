@@ -2,7 +2,6 @@ package com.example.hida.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -20,17 +19,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,12 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -54,8 +49,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,8 +63,11 @@ fun GalleryScreen(
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
     val repository = remember { MediaRepository(context) }
-    var mediaFiles by remember { mutableStateOf(emptyList<File>()) }
+    
+    var allMediaFiles by remember { mutableStateOf(emptyList<File>()) }
     var hasPermission by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var showFabMenu by remember { mutableStateOf(false) }
     
     // Custom ImageLoader for Encrypted Files
     val imageLoader = remember {
@@ -82,6 +78,15 @@ fun GalleryScreen(
             .build()
     }
 
+    // Filter media based on selected tab
+    val displayedMedia = remember(allMediaFiles, selectedTab) {
+        if (selectedTab == 0) {
+            allMediaFiles.filter { !repository.isVideo(it) } // Photos
+        } else {
+            allMediaFiles.filter { repository.isVideo(it) } // Videos
+        }
+    }
+
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -89,7 +94,7 @@ fun GalleryScreen(
         hasPermission = permissions.values.all { it }
         if (hasPermission && !isFakeMode) {
             scope.launch {
-                mediaFiles = withContext(Dispatchers.IO) {
+                allMediaFiles = withContext(Dispatchers.IO) {
                     repository.getMediaFiles()
                 }
             }
@@ -114,13 +119,13 @@ fun GalleryScreen(
         if (!hasPermission) {
             permissionLauncher.launch(permissions)
         } else if (!isFakeMode) {
-            mediaFiles = withContext(Dispatchers.IO) {
+            allMediaFiles = withContext(Dispatchers.IO) {
                 repository.getMediaFiles()
             }
         }
     }
 
-    // State to track the file currently being moved
+    // Pending file for delete confirmation
     var pendingEncryptedFile by remember { mutableStateOf<File?>(null) }
 
     val deleteLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -130,7 +135,7 @@ fun GalleryScreen(
                     file.delete()
                     Toast.makeText(context, "Move cancelled", Toast.LENGTH_SHORT).show()
                     scope.launch {
-                        mediaFiles = withContext(Dispatchers.IO) { repository.getMediaFiles() }
+                        allMediaFiles = withContext(Dispatchers.IO) { repository.getMediaFiles() }
                     }
                 }
             }
@@ -147,7 +152,7 @@ fun GalleryScreen(
                 
                 if (newFile != null) {
                     pendingEncryptedFile = newFile
-                    mediaFiles = withContext(Dispatchers.IO) {
+                    allMediaFiles = withContext(Dispatchers.IO) {
                         repository.getMediaFiles()
                     }
                     
@@ -162,20 +167,18 @@ fun GalleryScreen(
                 }
             }
         }
+        showFabMenu = false
     }
 
     HidaTheme {
         Scaffold(
-            containerColor = PureBlack,
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
-                LargeTopAppBar(
+                CenterAlignedTopAppBar(
                     title = {
                         Text(
                             text = "Vault",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.W300
-                            ),
-                            color = TextPrimary
+                            style = MaterialTheme.typography.titleLarge
                         )
                     },
                     actions = {
@@ -189,7 +192,7 @@ fun GalleryScreen(
                                 Icon(
                                     Icons.Default.Settings,
                                     contentDescription = "Settings",
-                                    tint = TextSecondary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -199,27 +202,131 @@ fun GalleryScreen(
                                 onLock()
                             }
                         ) {
-                            Icon(Icons.Default.Lock, contentDescription = "Lock", tint = BlackCherry)
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = "Lock",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     },
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
-                        containerColor = PureBlack,
-                        scrolledContainerColor = SurfaceBlack
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             },
-            floatingActionButton = {
-                if (!isFakeMode) {
-                    ExpressiveFAB(
+            bottomBar = {
+                NavigationBar(
+                    containerColor = md3_dark_surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ) {
+                    NavigationBarItem(
+                        selected = selectedTab == 0,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            pickMedia.launch(
-                                androidx.activity.result.PickVisualMediaRequest(
-                                    ActivityResultContracts.PickVisualMedia.ImageAndVideo
-                                )
+                            selectedTab = 0
+                        },
+                        icon = {
+                            Icon(
+                                if (selectedTab == 0) Icons.Filled.Image else Icons.Outlined.Image,
+                                contentDescription = "Photos"
+                            )
+                        },
+                        label = { Text("Photos") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == 1,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            selectedTab = 1
+                        },
+                        icon = {
+                            Icon(
+                                if (selectedTab == 1) Icons.Filled.Movie else Icons.Outlined.Movie,
+                                contentDescription = "Videos"
+                            )
+                        },
+                        label = { Text("Videos") },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            },
+            floatingActionButton = {
+                if (!isFakeMode) {
+                    Box {
+                        // FAB Menu Items
+                        AnimatedVisibility(
+                            visible = showFabMenu,
+                            enter = fadeIn() + scaleIn(),
+                            exit = fadeOut() + scaleOut(),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(bottom = 72.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                SmallFloatingActionButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        pickMedia.launch(
+                                            androidx.activity.result.PickVisualMediaRequest(
+                                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                                            )
+                                        )
+                                    },
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ) {
+                                    Icon(Icons.Default.Image, "Import Photo")
+                                }
+                                SmallFloatingActionButton(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        pickMedia.launch(
+                                            androidx.activity.result.PickVisualMediaRequest(
+                                                ActivityResultContracts.PickVisualMedia.VideoOnly
+                                            )
+                                        )
+                                    },
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                ) {
+                                    Icon(Icons.Default.Movie, "Import Video")
+                                }
+                            }
+                        }
+                        
+                        // Main FAB
+                        LargeFloatingActionButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showFabMenu = !showFabMenu
+                            },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = CircleShape
+                        ) {
+                            Icon(
+                                if (showFabMenu) Icons.Default.Close else Icons.Default.Add,
+                                contentDescription = "Add Media",
+                                modifier = Modifier.size(32.dp)
                             )
                         }
-                    )
+                    }
                 }
             }
         ) { padding ->
@@ -227,55 +334,52 @@ fun GalleryScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .background(PureBlack)
             ) {
-                if (mediaFiles.isEmpty()) {
-                    // Expressive Empty State
+                if (displayedMedia.isEmpty()) {
+                    // Empty State
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Icon(
-                            Icons.Outlined.PhotoLibrary,
+                            if (selectedTab == 0) Icons.Outlined.Image else Icons.Outlined.Movie,
                             contentDescription = null,
                             modifier = Modifier.size(80.dp),
-                            tint = SurfaceContainer
+                            tint = MaterialTheme.colorScheme.surfaceVariant
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = if (isFakeMode) "Nothing here" else "Your vault is empty",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = TextTertiary
+                            text = if (isFakeMode) "Nothing here" 
+                                   else if (selectedTab == 0) "No photos yet"
+                                   else "No videos yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (!isFakeMode) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap + to add photos & videos",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextTertiary.copy(alpha = 0.6f)
+                                text = "Tap + to add ${if (selectedTab == 0) "photos" else "videos"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
                         }
                     }
                 } else {
-                    // Media Grid with Expressive Cards
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
+                    // Staggered Masonry Grid
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Fixed(2),
                         contentPadding = PaddingValues(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalItemSpacing = 8.dp
                     ) {
-                        items(mediaFiles) { file ->
-                            ExpressiveMediaCard(
+                        items(displayedMedia) { file ->
+                            MediaThumbnailCard(
                                 file = file,
                                 isVideo = repository.isVideo(file),
                                 imageLoader = imageLoader,
                                 onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    val encodedPath = URLEncoder.encode(
-                                        file.absolutePath,
-                                        StandardCharsets.UTF_8.toString()
-                                    )
                                     if (repository.isVideo(file)) {
                                         onPlayVideo(file.absolutePath)
                                     } else {
@@ -292,37 +396,7 @@ fun GalleryScreen(
 }
 
 @Composable
-fun ExpressiveFAB(onClick: () -> Unit) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "fabScale"
-    )
-
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = Modifier.scale(scale),
-        containerColor = BlackCherry,
-        contentColor = TextPrimary,
-        shape = CircleShape,
-        interactionSource = interactionSource
-    ) {
-        Icon(
-            Icons.Default.Add,
-            contentDescription = "Add Media",
-            modifier = Modifier.size(28.dp)
-        )
-    }
-}
-
-@Composable
-fun ExpressiveMediaCard(
+fun MediaThumbnailCard(
     file: File,
     isVideo: Boolean,
     imageLoader: coil.ImageLoader,
@@ -332,7 +406,7 @@ fun ExpressiveMediaCard(
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
+        targetValue = if (isPressed) 0.96f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
@@ -340,22 +414,29 @@ fun ExpressiveMediaCard(
         label = "cardScale"
     )
 
+    // Random height for masonry effect
+    val aspectRatio = remember { 
+        listOf(0.75f, 1f, 1.25f, 1.5f).random()
+    }
+
     Card(
         modifier = Modifier
-            .aspectRatio(1f)
+            .fillMaxWidth()
+            .aspectRatio(aspectRatio)
             .scale(scale)
-            .clip(RoundedCornerShape(8.dp))
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = rememberRipple(color = MaterialTheme.colorScheme.primary),
                 onClick = onClick
             ),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+        shape = HidaShapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = md3_dark_surfaceContainerHigh
+        )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
-                model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                model = coil.request.ImageRequest.Builder(LocalContext.current)
                     .data(file)
                     .crossfade(true)
                     .diskCachePolicy(coil.request.CachePolicy.DISABLED)
@@ -374,19 +455,27 @@ fun ExpressiveMediaCard(
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
-                                    Color.Transparent,
-                                    PureBlack.copy(alpha = 0.6f)
+                                    androidx.compose.ui.graphics.Color.Transparent,
+                                    md3_dark_scrim.copy(alpha = 0.6f)
                                 )
                             )
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.PlayCircle,
-                        contentDescription = "Video",
-                        tint = TextPrimary.copy(alpha = 0.9f),
-                        modifier = Modifier.size(40.dp)
-                    )
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "Play",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

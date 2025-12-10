@@ -17,10 +17,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,8 +32,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.hida.data.PreferencesManager
 import com.example.hida.ui.theme.*
@@ -51,16 +50,13 @@ fun SettingsScreen(
 
     HidaTheme {
         Scaffold(
-            containerColor = PureBlack,
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 LargeTopAppBar(
                     title = {
                         Text(
                             text = "Settings",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                fontWeight = FontWeight.W300
-                            ),
-                            color = TextPrimary
+                            style = MaterialTheme.typography.displaySmall
                         )
                     },
                     navigationIcon = {
@@ -73,13 +69,13 @@ fun SettingsScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 "Back",
-                                tint = TextSecondary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     },
                     colors = TopAppBarDefaults.largeTopAppBarColors(
-                        containerColor = PureBlack,
-                        scrolledContainerColor = SurfaceBlack
+                        containerColor = MaterialTheme.colorScheme.background,
+                        scrolledContainerColor = md3_dark_surfaceContainer
                     )
                 )
             }
@@ -96,13 +92,13 @@ fun SettingsScreen(
                     Text(
                         "Security",
                         style = MaterialTheme.typography.labelLarge,
-                        color = BlackCherry,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
                     )
                 }
                 
                 item {
-                    ExpressiveSettingsCard(
+                    MD3SettingsCard(
                         title = "Access PIN",
                         subtitle = "Change your vault access code",
                         icon = Icons.Default.Lock,
@@ -114,7 +110,7 @@ fun SettingsScreen(
                 }
                 
                 item {
-                    ExpressiveSettingsCard(
+                    MD3SettingsCard(
                         title = "Decoy PIN",
                         subtitle = "Set a fake PIN that shows empty vault",
                         icon = Icons.Default.VisibilityOff,
@@ -131,7 +127,7 @@ fun SettingsScreen(
                     Text(
                         "Appearance",
                         style = MaterialTheme.typography.labelLarge,
-                        color = BlackCherry,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
                     )
                 }
@@ -140,7 +136,7 @@ fun SettingsScreen(
                     Text(
                         "App Icon",
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     )
                 }
@@ -176,7 +172,7 @@ fun SettingsScreen(
                         userScrollEnabled = false
                     ) {
                         items(icons) { iconOption ->
-                            ExpressiveIconSelector(
+                            MD3IconSelector(
                                 iconOption = iconOption,
                                 isSelected = currentIcon == iconOption.componentName ||
                                         (currentIcon == "MainActivity" && iconOption.componentName == "MainActivity"),
@@ -185,7 +181,7 @@ fun SettingsScreen(
                                     switchIcon(context, currentIcon, iconOption.componentName)
                                     prefs.saveIconAlias(iconOption.componentName)
                                     currentIcon = iconOption.componentName
-                                    Toast.makeText(context, "Icon changed to ${iconOption.name}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Icon: ${iconOption.name}", Toast.LENGTH_SHORT).show()
                                 }
                             )
                         }
@@ -200,7 +196,7 @@ fun SettingsScreen(
 
         // PIN Dialog
         if (showPinDialog) {
-            ExpressivePinDialog(
+            MD3PinDialog(
                 title = "Change Access PIN",
                 currentPin = prefs.getPin(),
                 onDismiss = { showPinDialog = false },
@@ -214,7 +210,7 @@ fun SettingsScreen(
 
         // Fake PIN Dialog
         if (showFakePinDialog) {
-            ExpressivePinDialog(
+            MD3PinDialog(
                 title = "Set Decoy PIN",
                 currentPin = prefs.getFakePin(),
                 onDismiss = { showFakePinDialog = false },
@@ -229,7 +225,7 @@ fun SettingsScreen(
 }
 
 @Composable
-fun ExpressiveSettingsCard(
+fun MD3SettingsCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
@@ -253,11 +249,13 @@ fun ExpressiveSettingsCard(
             .scale(scale)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = rememberRipple(color = MaterialTheme.colorScheme.primary),
                 onClick = onClick
             ),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
+        shape = HidaShapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = md3_dark_surfaceContainerHigh
+        )
     ) {
         Row(
             modifier = Modifier
@@ -265,19 +263,19 @@ fun ExpressiveSettingsCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(BlackCherry.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = BlackCherry,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.width(16.dp))
@@ -286,26 +284,26 @@ fun ExpressiveSettingsCard(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextTertiary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,
-                tint = TextTertiary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-fun ExpressiveIconSelector(
+fun MD3IconSelector(
     iconOption: IconOption,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -332,21 +330,21 @@ fun ExpressiveIconSelector(
                 onClick = onClick
             )
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    if (isSelected) BlackCherry else SurfaceContainer
-                ),
-            contentAlignment = Alignment.Center
+        Surface(
+            modifier = Modifier.size(56.dp),
+            shape = HidaShapes.medium,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else md3_dark_surfaceContainerHigh,
+            tonalElevation = if (isSelected) 6.dp else 0.dp
         ) {
-            Icon(
-                iconOption.icon,
-                contentDescription = iconOption.name,
-                tint = if (isSelected) TextPrimary else TextSecondary,
-                modifier = Modifier.size(28.dp)
-            )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    iconOption.icon,
+                    contentDescription = iconOption.name,
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary 
+                           else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(4.dp))
@@ -354,14 +352,15 @@ fun ExpressiveIconSelector(
         Text(
             text = iconOption.name,
             style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) TextPrimary else TextTertiary,
+            color = if (isSelected) MaterialTheme.colorScheme.primary 
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1
         )
     }
 }
 
 @Composable
-fun ExpressivePinDialog(
+fun MD3PinDialog(
     title: String,
     currentPin: String,
     onDismiss: () -> Unit,
@@ -371,13 +370,12 @@ fun ExpressivePinDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = SurfaceElevated,
-        shape = RoundedCornerShape(28.dp),
+        containerColor = md3_dark_surfaceContainerHigh,
+        shape = HidaShapes.extraLarge,
         title = {
             Text(
                 title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = TextPrimary
+                style = MaterialTheme.typography.headlineSmall
             )
         },
         text = {
@@ -386,10 +384,10 @@ fun ExpressivePinDialog(
                 onValueChange = { if (it.length <= 10 && it.all { c -> c.isDigit() }) pin = it },
                 label = { Text("Enter PIN") },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BlackCherry,
-                    unfocusedBorderColor = SurfaceContainer,
-                    focusedLabelColor = BlackCherry,
-                    cursorColor = BlackCherry
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary
                 ),
                 singleLine = true
             )
@@ -398,12 +396,12 @@ fun ExpressivePinDialog(
             TextButton(
                 onClick = { if (pin.isNotEmpty()) onConfirm(pin) }
             ) {
-                Text("Save", color = BlackCherry)
+                Text("Save", color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextSecondary)
+                Text("Cancel")
             }
         }
     )

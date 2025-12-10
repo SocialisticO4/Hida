@@ -4,14 +4,12 @@ import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -38,19 +36,28 @@ fun VideoPlayerScreen(
     
     var tempFile by remember { mutableStateOf<File?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build()
     }
 
     LaunchedEffect(filePath) {
-        val decrypted = repository.getDecryptedTempFile(encryptedFile)
-        if (decrypted != null) {
-            tempFile = decrypted
-            val mediaItem = MediaItem.fromUri(Uri.fromFile(decrypted))
-            exoPlayer.setMediaItem(mediaItem)
-            exoPlayer.prepare()
-            exoPlayer.playWhenReady = true
+        try {
+            val decrypted = repository.getDecryptedTempFile(encryptedFile)
+            if (decrypted != null && decrypted.exists() && decrypted.length() > 0) {
+                tempFile = decrypted
+                val mediaItem = MediaItem.fromUri(Uri.fromFile(decrypted))
+                exoPlayer.setMediaItem(mediaItem)
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+                isLoading = false
+            } else {
+                errorMessage = "Failed to decrypt video"
+                isLoading = false
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
             isLoading = false
         }
     }
@@ -66,49 +73,65 @@ fun VideoPlayerScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PureBlack)
+                .background(MaterialTheme.colorScheme.scrim)
                 .systemBarsPadding()
         ) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = BlackCherry,
-                        strokeWidth = 3.dp
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
+                errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = errorMessage!!,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+                else -> {
+                    AndroidView(
+                        factory = { ctx ->
+                            PlayerView(ctx).apply {
+                                player = exoPlayer
+                                useController = true
+                                setShowNextButton(false)
+                                setShowPreviousButton(false)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
-            } else {
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            player = exoPlayer
-                            useController = true
-                            setShowNextButton(false)
-                            setShowPreviousButton(false)
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
             }
 
             // Back button
-            IconButton(
+            FilledIconButton(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onBack()
                 },
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceContainer.copy(alpha = 0.7f))
+                    .padding(16.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = md3_dark_surfaceContainer.copy(alpha = 0.8f)
+                )
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

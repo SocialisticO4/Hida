@@ -77,7 +77,9 @@ class MediaRepository(private val context: Context) {
     suspend fun getDecryptedTempFile(encryptedFile: File): File? {
         return withContext(Dispatchers.IO) {
             try {
-                val tempFile = File.createTempFile("temp_video_", ".mp4", context.cacheDir)
+                // Get the original extension from the encrypted file name
+                val originalExtension = encryptedFile.extension.ifEmpty { "mp4" }
+                val tempFile = File.createTempFile("temp_video_", ".$originalExtension", context.cacheDir)
                 tempFile.deleteOnExit()
                 
                 getDecryptedStream(encryptedFile).use { input ->
@@ -95,11 +97,12 @@ class MediaRepository(private val context: Context) {
     }
 
     fun getMediaFiles(): List<File> {
-        return directory.listFiles()?.toList() ?: emptyList()
+        return directory.listFiles()?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
 
     fun isVideo(file: File): Boolean {
-        return file.name.contains(".mp4") || file.name.contains(".mov") || file.name.contains(".avi")
+        val videoExtensions = listOf("mp4", "mov", "avi", "mkv", "webm", "3gp", "m4v")
+        return videoExtensions.any { file.name.lowercase().endsWith(".$it") }
     }
 
     fun deleteMedia(file: File): Boolean {

@@ -1,23 +1,22 @@
 package com.example.hida.ui
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -30,11 +29,14 @@ import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
 import com.example.hida.ui.theme.*
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CalculatorScreen(
     onUnlock: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    
     var displayText by remember { mutableStateOf("0") }
     var subDisplayText by remember { mutableStateOf("") }
     
@@ -61,28 +63,53 @@ fun CalculatorScreen(
         }
     }
 
+    fun handleEquals() {
+        val currentValue = displayText.toDoubleOrNull()
+        if (currentValue != null && firstOperand != null && pendingOperator != null) {
+            val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
+            subDisplayText = "${formatResult(firstOperand!!)} $pendingOperator ${formatResult(currentValue)} ="
+            displayText = if (result.isNaN()) "Error" else formatResult(result)
+            firstOperand = null
+            pendingOperator = null
+            waitingForSecondOperand = false
+        }
+    }
+
+    fun handleLongPressEquals() {
+        val prefs = PreferencesManager(context)
+        val realPin = prefs.getPin()
+        val fakePin = prefs.getFakePin()
+        
+        when (displayText) {
+            realPin -> {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onUnlock(false) // Real Mode
+            }
+            fakePin -> {
+                if (fakePin.isNotEmpty()) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onUnlock(true) // Fake Mode
+                }
+            }
+            else -> {
+                // Just perform normal calculation if PIN doesn't match
+                handleEquals()
+            }
+        }
+    }
+
     HidaTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            PureBlack,
-                            SurfaceBlack
-                        )
-                    )
-                )
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .systemBarsPadding(),
+                    .systemBarsPadding()
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-
                 // Display Area
                 Column(
                     modifier = Modifier
@@ -96,7 +123,7 @@ fun CalculatorScreen(
                         Text(
                             text = subDisplayText,
                             style = MaterialTheme.typography.titleLarge,
-                            color = TextTertiary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.End,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
@@ -107,13 +134,13 @@ fun CalculatorScreen(
                         text = displayText,
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = when {
-                                displayText.length > 12 -> 36.sp
-                                displayText.length > 8 -> 48.sp
+                                displayText.length > 12 -> 40.sp
+                                displayText.length > 8 -> 56.sp
                                 else -> 72.sp
                             },
                             fontWeight = FontWeight.W200
                         ),
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         textAlign = TextAlign.End,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -123,11 +150,11 @@ fun CalculatorScreen(
                     Spacer(modifier = Modifier.height(32.dp))
                 }
 
-                // Keypad with Material 3 Expressive Design
+                // Keypad
                 Column(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
-                        .background(SurfaceElevated.copy(alpha = 0.5f))
+                        .clip(HidaShapes.extraLarge)
+                        .background(md3_dark_surfaceContainer)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -146,19 +173,21 @@ fun CalculatorScreen(
                         ) {
                             row.forEach { label ->
                                 val weight = if (label == "0") 2f else 1f
-                                val buttonType = when {
-                                    label in listOf("÷", "×", "-", "+", "=") -> ButtonType.OPERATION
-                                    label in listOf("C", "±", "%") -> ButtonType.FUNCTION
-                                    else -> ButtonType.NUMBER
+                                val buttonType = when (label) {
+                                    "=" -> ButtonType.PRIMARY
+                                    in listOf("÷", "×", "-", "+") -> ButtonType.SECONDARY
+                                    in listOf("C", "±", "%") -> ButtonType.TERTIARY
+                                    else -> ButtonType.SURFACE
                                 }
                                 
-                                ExpressiveCalculatorButton(
+                                MD3CalculatorButton(
                                     symbol = label,
                                     buttonType = buttonType,
                                     modifier = Modifier
                                         .weight(weight)
-                                        .aspectRatio(if (label == "0") 2.1f else 1f),
+                                        .aspectRatio(if (label == "0") 2.2f else 1f),
                                     onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         when (label) {
                                             "C" -> {
                                                 displayText = "0"
@@ -182,29 +211,7 @@ fun CalculatorScreen(
                                                     displayText = formatResult(value / 100)
                                                 }
                                             }
-                                            "=" -> {
-                                                val prefs = PreferencesManager(context)
-                                                val realPin = prefs.getPin()
-                                                val fakePin = prefs.getFakePin()
-                                                
-                                                // Check for PIN unlock first
-                                                if (displayText == realPin) {
-                                                    onUnlock(false) // Real Mode
-                                                } else if (fakePin.isNotEmpty() && displayText == fakePin) {
-                                                    onUnlock(true) // Fake Mode
-                                                } else {
-                                                    // Perform actual calculation
-                                                    val currentValue = displayText.toDoubleOrNull()
-                                                    if (currentValue != null && firstOperand != null && pendingOperator != null) {
-                                                        val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
-                                                        subDisplayText = "${formatResult(firstOperand!!)} $pendingOperator ${formatResult(currentValue)} ="
-                                                        displayText = if (result.isNaN()) "Error" else formatResult(result)
-                                                        firstOperand = null
-                                                        pendingOperator = null
-                                                        waitingForSecondOperand = false
-                                                    }
-                                                }
-                                            }
+                                            "=" -> handleEquals()
                                             in listOf("+", "-", "×", "÷") -> {
                                                 val currentValue = displayText.toDoubleOrNull()
                                                 if (currentValue != null) {
@@ -225,7 +232,6 @@ fun CalculatorScreen(
                                                 }
                                             }
                                             else -> {
-                                                // Number input
                                                 if (displayText == "0" || displayText == "Error" || waitingForSecondOperand) {
                                                     displayText = label
                                                     waitingForSecondOperand = false
@@ -234,7 +240,10 @@ fun CalculatorScreen(
                                                 }
                                             }
                                         }
-                                    }
+                                    },
+                                    onLongClick = if (label == "=") {
+                                        { handleLongPressEquals() }
+                                    } else null
                                 )
                             }
                         }
@@ -246,70 +255,81 @@ fun CalculatorScreen(
 }
 
 enum class ButtonType {
-    NUMBER, OPERATION, FUNCTION
+    PRIMARY,    // = button (glowing red)
+    SECONDARY,  // Operators (÷×-+)
+    TERTIARY,   // Functions (C, ±, %)
+    SURFACE     // Numbers (0-9, .)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ExpressiveCalculatorButton(
+fun MD3CalculatorButton(
     symbol: String,
     buttonType: ButtonType,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
-    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
-    // Spring animation for press effect
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
-    )
+    val scale by remember { Animatable(1f) }
+    
+    LaunchedEffect(isPressed) {
+        if (isPressed) {
+            scale.animateTo(0.92f, spring(stiffness = Spring.StiffnessHigh))
+        } else {
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+        }
+    }
 
-    val backgroundColor by animateColorAsState(
-        targetValue = when (buttonType) {
-            ButtonType.OPERATION -> if (isPressed) BlackCherryLight else BlackCherry
-            ButtonType.FUNCTION -> if (isPressed) SurfaceContainerHigh else SurfaceContainer
-            ButtonType.NUMBER -> if (isPressed) SurfaceContainerHigh else SurfaceElevated
-        },
-        label = "backgroundColor"
-    )
-
+    val containerColor = when (buttonType) {
+        ButtonType.PRIMARY -> MaterialTheme.colorScheme.primary
+        ButtonType.SECONDARY -> MaterialTheme.colorScheme.secondaryContainer
+        ButtonType.TERTIARY -> MaterialTheme.colorScheme.surfaceVariant
+        ButtonType.SURFACE -> md3_dark_surfaceContainerHigh
+    }
+    
     val contentColor = when (buttonType) {
-        ButtonType.OPERATION -> TextPrimary
-        ButtonType.FUNCTION -> BlackCherryLight
-        ButtonType.NUMBER -> TextPrimary
+        ButtonType.PRIMARY -> MaterialTheme.colorScheme.onPrimary
+        ButtonType.SECONDARY -> MaterialTheme.colorScheme.onSecondaryContainer
+        ButtonType.TERTIARY -> MaterialTheme.colorScheme.onSurfaceVariant
+        ButtonType.SURFACE -> MaterialTheme.colorScheme.onSurface
+    }
+    
+    val rippleColor = when (buttonType) {
+        ButtonType.PRIMARY -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
+        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
     }
 
     Surface(
         modifier = modifier
-            .scale(scale)
-            .clip(if (symbol == "0") RoundedCornerShape(32.dp) else CircleShape)
-            .clickable(
+            .scale(scale.value)
+            .clip(if (symbol == "0") SquircleShape else CircleShape)
+            .combinedClickable(
                 interactionSource = interactionSource,
-                indication = null
-            ) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            },
-        color = backgroundColor,
-        shape = if (symbol == "0") RoundedCornerShape(32.dp) else CircleShape,
-        tonalElevation = if (buttonType == ButtonType.OPERATION) 8.dp else 2.dp
+                indication = rememberRipple(color = rippleColor),
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        color = containerColor,
+        shape = if (symbol == "0") SquircleShape else CircleShape,
+        tonalElevation = if (buttonType == ButtonType.PRIMARY) 6.dp else 2.dp
     ) {
         Box(
             contentAlignment = if (symbol == "0") Alignment.CenterStart else Alignment.Center,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (symbol == "0") PaddingValues(start = 28.dp) else PaddingValues(0.dp))
+                .padding(if (symbol == "0") PaddingValues(start = 32.dp) else PaddingValues(0.dp))
         ) {
             Text(
                 text = symbol,
                 style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = if (buttonType == ButtonType.OPERATION) FontWeight.W600 else FontWeight.W400
+                    fontWeight = when (buttonType) {
+                        ButtonType.PRIMARY -> FontWeight.W600
+                        ButtonType.SECONDARY -> FontWeight.W500
+                        else -> FontWeight.W400
+                    }
                 ),
                 color = contentColor
             )
