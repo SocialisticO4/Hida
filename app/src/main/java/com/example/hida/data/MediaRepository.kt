@@ -134,4 +134,53 @@ class MediaRepository(private val context: Context) {
             }
         }
     }
+
+    suspend fun exportMedia(encryptedFile: File): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val originalExtension = encryptedFile.extension.ifEmpty { "jpg" }
+                val isVideo = isVideo(encryptedFile)
+                val mimeType = if (isVideo) "video/$originalExtension" else "image/$originalExtension"
+                
+                // Create MediaStore entry
+                val values = android.content.ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, "Hida_Export_${System.currentTimeMillis()}.$originalExtension")
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, if (isVideo) "Movies/HidaExport" else "Pictures/HidaExport")
+                    }
+                }
+
+                val collection = if (isVideo) {
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                } else {
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                }
+
+                val uri = context.contentResolver.insert(collection, values) ?: return@withContext false
+
+                // Decrypt and write to MediaStore
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    getDecryptedStream(encryptedFile).use { input ->
+                        input.copyTo(output)
+                    }
+                }
+
+                // Mark as finished (Android Q+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.clear()
+                    values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    context.contentResolver.update(uri, values, null, null)
+                }
+
+                // Delete encrypted original after successful export
+                encryptedFile.delete()
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
 }

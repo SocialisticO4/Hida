@@ -265,100 +265,23 @@ fun GalleryScreen(
             },
             floatingActionButton = {
                 if (!isFakeMode) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // FAB Menu Items
-                        AnimatedVisibility(
-                            visible = showFabMenu,
-                            enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut()
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Import Photo option
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Surface(
-                                        shape = HidaShapes.medium,
-                                        color = md3_dark_surfaceContainerHigh,
-                                        tonalElevation = 4.dp
-                                    ) {
-                                        Text(
-                                            text = "Photo",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    SmallFloatingActionButton(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            pickMedia.launch(
-                                                androidx.activity.result.PickVisualMediaRequest(
-                                                    ActivityResultContracts.PickVisualMedia.ImageOnly
-                                                )
-                                            )
-                                        },
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                    ) {
-                                        Icon(Icons.Default.Image, "Import Photo")
-                                    }
-                                }
-                                
-                                // Import Video option
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Surface(
-                                        shape = HidaShapes.medium,
-                                        color = md3_dark_surfaceContainerHigh,
-                                        tonalElevation = 4.dp
-                                    ) {
-                                        Text(
-                                            text = "Video",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    SmallFloatingActionButton(
-                                        onClick = {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            pickMedia.launch(
-                                                androidx.activity.result.PickVisualMediaRequest(
-                                                    ActivityResultContracts.PickVisualMedia.VideoOnly
-                                                )
-                                            )
-                                        },
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                    ) {
-                                        Icon(Icons.Default.Movie, "Import Video")
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Main FAB
+                        // Main Universal FAB
                         LargeFloatingActionButton(
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showFabMenu = !showFabMenu
+                                // Universal Picker for Images and Videos
+                                pickMedia.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(
+                                        ActivityResultContracts.PickVisualMedia.ImageAndVideo
+                                    )
+                                )
                             },
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             shape = CircleShape
                         ) {
                             Icon(
-                                if (showFabMenu) Icons.Default.Close else Icons.Default.Add,
+                                Icons.Default.Add,
                                 contentDescription = "Add Media",
                                 modifier = Modifier.size(32.dp)
                             )

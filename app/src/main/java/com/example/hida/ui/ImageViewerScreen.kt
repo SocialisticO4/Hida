@@ -147,21 +147,47 @@ fun ImageViewerScreen(
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    
-                    FilledIconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            showDeleteDialog = true
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledIconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                scope.launch {
+                                    val success = repository.exportMedia(file)
+                                    if (success) {
+                                        Toast.makeText(context, "Moved to Gallery", Toast.LENGTH_SHORT).show()
+                                        onBack()
+                                    } else {
+                                        Toast.makeText(context, "Export failed", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = md3_dark_surfaceContainer.copy(alpha = 0.8f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Move to Gallery",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        
+                        FilledIconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                showDeleteDialog = true
+                            },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             }
