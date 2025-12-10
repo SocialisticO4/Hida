@@ -136,21 +136,12 @@ fun GalleryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = "Gallery",
-                            color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (isFakeMode) {
-                            Text(
-                                "Public Mode",
-                                color = Color.Gray,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
+                    Text(
+                        text = "Gallery",
+                        color = Color.White,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 actions = {
                     Row {
