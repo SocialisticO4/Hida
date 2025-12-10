@@ -8,7 +8,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -30,42 +30,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
+import com.example.hida.ui.theme.HidaShapes
+import com.example.hida.ui.theme.SquircleShape
 import kotlinx.coroutines.delay
-import kotlin.math.*
+import kotlin.math.abs
 
-// =============================================================================
-// M3 EXPRESSIVE TONAL PALETTE
-// =============================================================================
-private object CalcColors {
-    val Background = Color(0xFF000000)
-    val Surface = Color(0xFF1A0F10)
-    val SurfaceVariant = Color(0xFF2C1C1D)
-    
-    // Number buttons - warm dark tones
-    val NumberBg = Color(0xFF3D2B2C)
-    val NumberText = Color(0xFFE8D9D9)
-    
-    // Operator buttons
-    val OperatorBg = Color(0xFF524646)
-    val OperatorText = Color(0xFFD8C3C3)
-    
-    // AC button - Primary accent
-    val AcBg = Color(0xFF7A332C)
-    val AcText = Color(0xFFE8D9D9)
-    
-    // Equals button - Tertiary gold
-    val EqualsBg = Color(0xFFD1B270)
-    val EqualsText = Color(0xFF000000)
-    
-    // Cursor and result preview
-    val Cursor = Color(0xFFE2B4B7)
-    val ResultPreview = Color(0xFFD1B270)
-    val HistoryText = Color(0xFF888888)
-}
-
-// =============================================================================
-// CALCULATOR SCREEN
-// =============================================================================
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorScreen(
@@ -79,7 +48,7 @@ fun CalculatorScreen(
     var resultPreview by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
     
-    // Blinking cursor state
+    // Blinking cursor
     var cursorVisible by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -88,7 +57,7 @@ fun CalculatorScreen(
         }
     }
 
-    // Calculate live result preview
+    // Calculate preview
     LaunchedEffect(expression) {
         resultPreview = try {
             if (expression.isNotEmpty() && expression != "0" && expression != "Error") {
@@ -122,14 +91,12 @@ fun CalculatorScreen(
     fun handleEquals() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         
-        // Check PIN unlock
         val prefs = PreferencesManager(context)
         when (expression) {
             prefs.getPin() -> { onUnlock(false); return }
             prefs.getFakePin() -> if (prefs.getFakePin().isNotEmpty()) { onUnlock(true); return }
         }
         
-        // Calculate
         try {
             val result = evaluateExpression(expression)
             expression = formatResult(result)
@@ -154,55 +121,68 @@ fun CalculatorScreen(
         }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = CalcColors.Background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-        ) {
-            // Toolbar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(onClick = { }) {
-                    Icon(Icons.Default.History, "History", tint = CalcColors.OperatorText)
-                }
-                Box {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, "Menu", tint = CalcColors.OperatorText)
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.History,
+                            "History",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false },
-                        containerColor = CalcColors.SurfaceVariant,
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        listOf("Clear history", "Settings").forEach { item ->
+                },
+                actions = {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                "Menu",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            shape = HidaShapes.large
+                        ) {
                             DropdownMenuItem(
-                                text = { Text(item, color = CalcColors.NumberText) },
+                                text = { Text("Clear history") },
+                                onClick = { showMenu = false }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
                                 onClick = { showMenu = false }
                             )
                         }
                     }
-                }
-            }
-
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.Bottom
+        ) {
             // Display Area
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
+                    .fillMaxWidth(),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.End
             ) {
-                // Expression with cursor
+                // Expression
                 Row(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.End,
@@ -212,137 +192,165 @@ fun CalculatorScreen(
                         text = expression,
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = when {
-                                expression.length > 14 -> 36.sp
-                                expression.length > 10 -> 48.sp
-                                expression.length > 7 -> 56.sp
-                                else -> 72.sp
+                                expression.length > 12 -> 44.sp
+                                expression.length > 8 -> 56.sp
+                                else -> 64.sp
                             },
-                            fontWeight = FontWeight.W300,
-                            letterSpacing = 1.sp
+                            fontWeight = FontWeight.Normal
                         ),
-                        color = CalcColors.NumberText,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.End
                     )
                     
-                    // Cursor
                     if (cursorVisible) {
                         Box(
                             modifier = Modifier
-                                .padding(start = 2.dp, bottom = 8.dp)
+                                .padding(start = 4.dp, bottom = 10.dp)
                                 .width(3.dp)
                                 .height(48.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(CalcColors.Cursor)
+                                .clip(RoundedCornerShape(1.5.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
                         )
                     }
                 }
                 
                 // Result Preview
-                if (resultPreview.isNotEmpty()) {
+                AnimatedVisibility(visible = resultPreview.isNotEmpty()) {
                     Text(
                         text = "= $resultPreview",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.W300
-                        ),
-                        color = CalcColors.ResultPreview,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(56.dp))
+                }
+                
+                if (resultPreview.isEmpty()) {
+                    Spacer(modifier = Modifier.height(64.dp))
                 }
             }
 
-            // Keypad
+            // Keypad Grid
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Row 1: AC, (), %, ÷
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CalcButton("AC", CalcColors.AcBg, CalcColors.AcText, Modifier.weight(1f)) { clear() }
-                    CalcButton("( )", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { append("()") }
-                    CalcButton("%", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { append("%") }
-                    CalcButton("÷", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("÷") }
+                // Row 1
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CalculatorButton(
+                        text = "AC",
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onClick = { clear() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CalculatorButton(
+                        text = "( )",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { append("()") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CalculatorButton(
+                        text = "%",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { append("%") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CalculatorButton(
+                        text = "÷",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { appendOperator("÷") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                
-                // Row 2: 7, 8, 9, ×
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CalcButton("7", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("7") }
-                    CalcButton("8", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("8") }
-                    CalcButton("9", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("9") }
-                    CalcButton("×", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("×") }
+
+                // Row 2
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CalculatorButton("7", onClick = { append("7") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("8", onClick = { append("8") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("9", onClick = { append("9") }, modifier = Modifier.weight(1f))
+                    CalculatorButton(
+                        text = "×",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { appendOperator("×") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                
-                // Row 3: 4, 5, 6, -
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CalcButton("4", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("4") }
-                    CalcButton("5", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("5") }
-                    CalcButton("6", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("6") }
-                    CalcButton("−", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("-") }
+
+                // Row 3
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CalculatorButton("4", onClick = { append("4") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("5", onClick = { append("5") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("6", onClick = { append("6") }, modifier = Modifier.weight(1f))
+                    CalculatorButton(
+                        text = "−",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { appendOperator("-") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                
-                // Row 4: 1, 2, 3, +
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CalcButton("1", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("1") }
-                    CalcButton("2", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("2") }
-                    CalcButton("3", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("3") }
-                    CalcButton("+", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("+") }
+
+                // Row 4
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CalculatorButton("1", onClick = { append("1") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("2", onClick = { append("2") }, modifier = Modifier.weight(1f))
+                    CalculatorButton("3", onClick = { append("3") }, modifier = Modifier.weight(1f))
+                    CalculatorButton(
+                        text = "+",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        onClick = { appendOperator("+") },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                
-                // Row 5: 0, ., ⌫, =
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CalcButton("0", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("0") }
-                    CalcButton(".", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { 
-                        if (!expression.contains(".") || expression.any { it in "+-×÷" }) append(".") 
-                    }
-                    BackspaceButton(CalcColors.OperatorBg, CalcColors.NumberText, Modifier.weight(1f)) { backspace() }
-                    CalcButton("=", CalcColors.EqualsBg, CalcColors.EqualsText, Modifier.weight(1f)) { handleEquals() }
+
+                // Row 5
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    CalculatorButton("0", onClick = { append("0") }, modifier = Modifier.weight(1f))
+                    CalculatorButton(".", onClick = { append(".") }, modifier = Modifier.weight(1f))
+                    CalculatorButton(
+                        icon = Icons.AutoMirrored.Filled.Backspace,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        onClick = { backspace() },
+                        modifier = Modifier.weight(1f)
+                    )
+                    CalculatorButton(
+                        text = "=",
+                        color = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                        onClick = { handleEquals() },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-// =============================================================================
-// CALC BUTTON
-// =============================================================================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun CalcButton(
-    label: String,
-    bgColor: Color,
-    textColor: Color,
+fun CalculatorButton(
+    text: String? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    color: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    shape: Shape = SquircleShape // Using Squircle for Expressive feel
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 400f),
         label = "scale"
     )
 
@@ -350,85 +358,36 @@ private fun CalcButton(
         modifier = modifier
             .aspectRatio(1f)
             .scale(scale)
-            .clip(CircleShape)
+            .clip(shape)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
                 onClick = onClick
             ),
-        color = bgColor,
-        shape = CircleShape
+        color = color,
+        contentColor = contentColor,
+        shape = shape
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = when (label) {
-                        "AC" -> 28.sp
-                        "( )" -> 24.sp
-                        else -> 32.sp
-                    },
-                    fontWeight = if (label in listOf("AC", "=")) FontWeight.W600 else FontWeight.W400
-                ),
-                color = textColor
-            )
+        Box(contentAlignment = Alignment.Center) {
+            if (text != null) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = if (text in listOf("AC", "=")) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                )
+            } else if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
     }
 }
 
-// =============================================================================
-// BACKSPACE BUTTON
-// =============================================================================
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun BackspaceButton(
-    bgColor: Color,
-    iconColor: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
-        label = "scale"
-    )
-
-    Surface(
-        modifier = modifier
-            .aspectRatio(1f)
-            .scale(scale)
-            .clip(CircleShape)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                onClick = onClick
-            ),
-        color = bgColor,
-        shape = CircleShape
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.Backspace,
-                contentDescription = "Backspace",
-                tint = iconColor,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-    }
-}
-
-// =============================================================================
-// EXPRESSION EVALUATOR
-// =============================================================================
+// Expression evaluator logic...
 private fun evaluateExpression(expr: String): Double {
     val cleaned = expr
         .replace("×", "*")
@@ -444,7 +403,6 @@ private fun evalSimple(expr: String): Double {
     var expression = expr.trim()
     if (expression.isEmpty()) return 0.0
     
-    // Handle multiplication and division first
     var result = 0.0
     var currentOp = '+'
     var currentNum = ""
@@ -465,7 +423,7 @@ private fun evalSimple(expr: String): Double {
         }
     }
     
-    // Process multiplication and division
+    // Multiplication and division
     var i = 0
     while (i < terms.size) {
         val (op, num) = terms[i]
@@ -479,7 +437,7 @@ private fun evalSimple(expr: String): Double {
         }
     }
     
-    // Process addition and subtraction
+    // Addition and subtraction
     for ((op, num) in terms) {
         result = when (op) {
             '+' -> result + num
