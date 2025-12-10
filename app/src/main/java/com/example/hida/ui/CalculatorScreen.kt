@@ -1,24 +1,30 @@
 package com.example.hida.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
@@ -29,7 +35,6 @@ fun CalculatorScreen(
     onUnlock: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
-    var isDarkTheme by remember { mutableStateOf(true) }
     var displayText by remember { mutableStateOf("0") }
     var subDisplayText by remember { mutableStateOf("") }
     
@@ -56,24 +61,27 @@ fun CalculatorScreen(
         }
     }
 
-    HidaTheme(darkTheme = isDarkTheme) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+    HidaTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            PureBlack,
+                            SurfaceBlack
+                        )
+                    )
+                )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .systemBarsPadding(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Bar with Theme Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    ThemeToggle(isDark = isDarkTheme, onToggle = { isDarkTheme = !isDarkTheme })
-                }
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Display Area
                 Column(
@@ -83,33 +91,48 @@ fun CalculatorScreen(
                     verticalArrangement = Arrangement.Bottom,
                     horizontalAlignment = Alignment.End
                 ) {
-                    Text(
-                        text = displayText,
-                        fontSize = if (displayText.length > 10) 50.sp else 80.sp,
-                        fontWeight = FontWeight.Light,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.End,
-                        lineHeight = 80.sp,
-                        maxLines = 1
-                    )
+                    // Sub display (expression)
                     if (subDisplayText.isNotEmpty()) {
                         Text(
                             text = subDisplayText,
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            textAlign = TextAlign.End
+                            style = MaterialTheme.typography.titleLarge,
+                            color = TextTertiary,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Main display
+                    Text(
+                        text = displayText,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = when {
+                                displayText.length > 12 -> 36.sp
+                                displayText.length > 8 -> 48.sp
+                                else -> 72.sp
+                            },
+                            fontWeight = FontWeight.W200
+                        ),
+                        color = TextPrimary,
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
 
-                // Keypad
+                // Keypad with Material 3 Expressive Design
                 Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                        .background(SurfaceElevated.copy(alpha = 0.5f))
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val buttonRows = listOf(
-                        listOf("C", "+/-", "%", "÷"),
+                        listOf("C", "±", "%", "÷"),
                         listOf("7", "8", "9", "×"),
                         listOf("4", "5", "6", "-"),
                         listOf("1", "2", "3", "+"),
@@ -123,16 +146,18 @@ fun CalculatorScreen(
                         ) {
                             row.forEach { label ->
                                 val weight = if (label == "0") 2f else 1f
-                                val isOperation = label in listOf("÷", "×", "-", "+", "=")
-                                val isFunction = label in listOf("C", "+/-", "%")
+                                val buttonType = when {
+                                    label in listOf("÷", "×", "-", "+", "=") -> ButtonType.OPERATION
+                                    label in listOf("C", "±", "%") -> ButtonType.FUNCTION
+                                    else -> ButtonType.NUMBER
+                                }
                                 
-                                CalculatorButton(
+                                ExpressiveCalculatorButton(
                                     symbol = label,
+                                    buttonType = buttonType,
                                     modifier = Modifier
                                         .weight(weight)
-                                        .aspectRatio(if (label == "0") 2f else 1f),
-                                    isOperation = isOperation,
-                                    isFunction = isFunction,
+                                        .aspectRatio(if (label == "0") 2.1f else 1f),
                                     onClick = {
                                         when (label) {
                                             "C" -> {
@@ -142,7 +167,7 @@ fun CalculatorScreen(
                                                 pendingOperator = null
                                                 waitingForSecondOperand = false
                                             }
-                                            "+/-" -> {
+                                            "±" -> {
                                                 if (displayText != "0" && displayText != "Error") {
                                                     displayText = if (displayText.startsWith("-")) {
                                                         displayText.substring(1)
@@ -172,7 +197,7 @@ fun CalculatorScreen(
                                                     val currentValue = displayText.toDoubleOrNull()
                                                     if (currentValue != null && firstOperand != null && pendingOperator != null) {
                                                         val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
-                                                        subDisplayText = "$firstOperand $pendingOperator $currentValue ="
+                                                        subDisplayText = "${formatResult(firstOperand!!)} $pendingOperator ${formatResult(currentValue)} ="
                                                         displayText = if (result.isNaN()) "Error" else formatResult(result)
                                                         firstOperand = null
                                                         pendingOperator = null
@@ -220,75 +245,73 @@ fun CalculatorScreen(
     }
 }
 
-@Composable
-fun ThemeToggle(isDark: Boolean, onToggle: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (isDark) Color(0xFF1C1C1E) else Color(0xFFE5E5EA))
-            .clickable { onToggle() }
-            .padding(8.dp)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.LightMode,
-                contentDescription = "Light Mode",
-                tint = if (!isDark) Color.Black else Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                imageVector = Icons.Default.DarkMode,
-                contentDescription = "Dark Mode",
-                tint = if (isDark) Color.White else Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
+enum class ButtonType {
+    NUMBER, OPERATION, FUNCTION
 }
 
 @Composable
-fun CalculatorButton(
+fun ExpressiveCalculatorButton(
     symbol: String,
+    buttonType: ButtonType,
     modifier: Modifier = Modifier,
-    isOperation: Boolean = false,
-    isFunction: Boolean = false,
     onClick: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
-
-    val backgroundColor = when {
-        isOperation -> MaterialTheme.colorScheme.tertiary
-        isFunction -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.surface
-    }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     
-    val contentColor = when {
-        isOperation -> MaterialTheme.colorScheme.onTertiary
-        isFunction -> MaterialTheme.colorScheme.onSecondary
-        else -> MaterialTheme.colorScheme.onSurface
+    // Spring animation for press effect
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "scale"
+    )
+
+    val backgroundColor by animateColorAsState(
+        targetValue = when (buttonType) {
+            ButtonType.OPERATION -> if (isPressed) BlackCherryLight else BlackCherry
+            ButtonType.FUNCTION -> if (isPressed) SurfaceContainerHigh else SurfaceContainer
+            ButtonType.NUMBER -> if (isPressed) SurfaceContainerHigh else SurfaceElevated
+        },
+        label = "backgroundColor"
+    )
+
+    val contentColor = when (buttonType) {
+        ButtonType.OPERATION -> TextPrimary
+        ButtonType.FUNCTION -> BlackCherryLight
+        ButtonType.NUMBER -> TextPrimary
     }
 
     Surface(
         modifier = modifier
-            .clip(if (symbol == "0") RoundedCornerShape(40.dp) else CircleShape)
-            .clickable { 
+            .scale(scale)
+            .clip(if (symbol == "0") RoundedCornerShape(32.dp) else CircleShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick() 
+                onClick()
             },
         color = backgroundColor,
-        shape = if (symbol == "0") RoundedCornerShape(40.dp) else CircleShape,
-        shadowElevation = 6.dp
+        shape = if (symbol == "0") RoundedCornerShape(32.dp) else CircleShape,
+        tonalElevation = if (buttonType == ButtonType.OPERATION) 8.dp else 2.dp
     ) {
         Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
+            contentAlignment = if (symbol == "0") Alignment.CenterStart else Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(if (symbol == "0") PaddingValues(start = 28.dp) else PaddingValues(0.dp))
         ) {
             Text(
                 text = symbol,
-                fontSize = 32.sp,
-                color = contentColor,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = if (buttonType == ButtonType.OPERATION) FontWeight.W600 else FontWeight.W400
+                ),
+                color = contentColor
             )
         }
     }

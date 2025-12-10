@@ -2,38 +2,40 @@ package com.example.hida.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Dark Theme Colors
-val DarkBackground = Color(0xFF2C2C2E) // Deep charcoal
-val DarkDisplayArea = Color(0xFF2C2C2E)
-val DarkButtonBackground = Color(0xFF3A3A3C) // Soft grey for numbers
-val DarkButtonOperation = Color(0xFFFF9F0A) // Orange for operations (classic) or Custom
-val DarkButtonFunction = Color(0xFF5E5E62) // Lighter grey for top row
-val DarkTextPrimary = Color.White
-val DarkTextSecondary = Color(0xFFEBEBF5)
+// Primary Accent - Black Cherry / Deep Wine
+val BlackCherry = Color(0xFF5D0E1D)
+val BlackCherryLight = Color(0xFF8B3A4A)
+val BlackCherryDark = Color(0xFF3D0A13)
 
-// Light Theme Colors
-val LightBackground = Color(0xFFF2F2F7) // Soft white/grey
-val LightDisplayArea = Color(0xFFF2F2F7)
-val LightButtonBackground = Color(0xFFFFFFFF) // White for numbers
-val LightButtonOperation = Color(0xFFFF9F0A)
-val LightButtonFunction = Color(0xFFD1D1D6) // Light grey for top row
-val LightTextPrimary = Color.Black
-val LightTextSecondary = Color(0xFF3C3C43)
+// Pure Black AMOLED Background
+val PureBlack = Color(0xFF000000)
+val SurfaceBlack = Color(0xFF0A0A0A)
+val SurfaceElevated = Color(0xFF121212)
+val SurfaceContainer = Color(0xFF1A1A1A)
+val SurfaceContainerHigh = Color(0xFF222222)
 
-// Accent Colors (from reference images, approximate)
-val CalculatorOrange = Color(0xFFFF9F0A)
-val CalculatorGreyDark = Color(0xFF333333)
-val CalculatorGreyLight = Color(0xFFA5A5A5)
+// Text Colors
+val TextPrimary = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFFB3B3B3)
+val TextTertiary = Color(0xFF808080)
 
-// Specific colors from user image analysis
-val DarkModeBg = Color(0xFF222222)
-val DarkModeBtn = Color(0xFF2D2D2D)
-val DarkModeAccent = Color(0xFF5F5F65) // For the top row/special keys
-val DarkModeOrange = Color(0xFF7F7F85) // The division/mult keys in the image looked greyish-purple
+// Accent Variants
+val AccentRed = Color(0xFFFF4D6A)
+val AccentRedDim = Color(0xFF8B3A4A)
 
-val LightModeBg = Color(0xFFE0E5EC)
-val LightModeBtn = Color(0xFFFFFFFF)
-val LightModeAccent = Color(0xFFD1D9E6)
+// Functional Colors
+val SuccessGreen = Color(0xFF4CAF50)
+val WarningAmber = Color(0xFFFF9800)
+val ErrorRed = Color(0xFFEF5350)
 
-// Gallery accent color
-val GoldAccent = Color(0xFFFF9F0A)
+// Calculator Button Colors
+val ButtonNumber = Color(0xFF1C1C1E)
+val ButtonFunction = Color(0xFF2C2C2E)
+val ButtonOperation = BlackCherry
+
+// Gradient Colors for Expressive Elements
+val GradientStart = BlackCherry
+val GradientEnd = Color(0xFF1A0508)
+
+// Surface Tint for Material 3
+val SurfaceTint = BlackCherry

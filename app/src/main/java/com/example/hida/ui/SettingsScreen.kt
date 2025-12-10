@@ -4,30 +4,38 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
-import com.example.hida.ui.theme.DarkBackground
+import com.example.hida.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,244 +43,404 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val prefs = remember { PreferencesManager(context) }
     var showPinDialog by remember { mutableStateOf(false) }
     var showFakePinDialog by remember { mutableStateOf(false) }
     var currentIcon by remember { mutableStateOf(prefs.getIconAlias()) }
 
-    Scaffold(
-        containerColor = DarkBackground,
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings", color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Security Section
-            Text("Security", color = Color.Gray, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
-            
-            SettingsItem(
-                title = "Change Real PIN",
-                subtitle = "Update your main access code",
-                icon = Icons.Default.Lock,
-                onClick = { showPinDialog = true }
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            SettingsItem(
-                title = "Set Fake PIN",
-                subtitle = "Duress code for empty gallery",
-                icon = Icons.Default.Warning,
-                onClick = { showFakePinDialog = true }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Icon Section
-            Text(
-                "Disguise Icon",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            val icons = listOf(
-                IconOption("Calculator", "MainActivity", Icons.Default.Calculate),
-                IconOption("Weather", "com.example.hida.WeatherAlias", Icons.Default.WbSunny),
-                IconOption("Notes", "com.example.hida.NotesAlias", Icons.Default.Edit),
-                IconOption("Clock", "com.example.hida.ClockAlias", Icons.Default.AccessTime),
-                IconOption("Music", "com.example.hida.MusicAlias", Icons.Default.MusicNote),
-                IconOption("Calendar", "com.example.hida.CalendarAlias", Icons.Default.CalendarToday),
-                IconOption("Mail", "com.example.hida.MailAlias", Icons.Default.Mail),
-                IconOption("Browser", "com.example.hida.BrowserAlias", Icons.Default.Public),
-                IconOption("Camera", "com.example.hida.CameraAlias", Icons.Default.CameraAlt),
-                IconOption("Maps", "com.example.hida.MapsAlias", Icons.Default.Map),
-                IconOption("Phone", "com.example.hida.PhoneAlias", Icons.Default.Phone),
-                IconOption("Contacts", "com.example.hida.ContactsAlias", Icons.Default.Contacts),
-                IconOption("Messages", "com.example.hida.MessagesAlias", Icons.AutoMirrored.Filled.Message),
-                IconOption("Settings", "com.example.hida.SettingsAlias", Icons.Default.Settings),
-                IconOption("Play Store", "com.example.hida.PlayStoreAlias", Icons.Default.Shop),
-                IconOption("Drive", "com.example.hida.DriveAlias", Icons.Default.Cloud),
-                IconOption("Files", "com.example.hida.FilesAlias", Icons.Default.Folder),
-                IconOption("Radio", "com.example.hida.RadioAlias", Icons.Default.Radio)
-            )
-
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 80.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+    HidaTheme {
+        Scaffold(
+            containerColor = PureBlack,
+            topBar = {
+                LargeTopAppBar(
+                    title = {
+                        Text(
+                            text = "Settings",
+                            style = MaterialTheme.typography.displaySmall.copy(
+                                fontWeight = FontWeight.W300
+                            ),
+                            color = TextPrimary
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onBack()
+                            }
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                "Back",
+                                tint = TextSecondary
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                        containerColor = PureBlack,
+                        scrolledContainerColor = SurfaceBlack
+                    )
+                )
+            }
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(icons) { option ->
-                    IconGridItem(
-                        option = option,
-                        isSelected = currentIcon == option.alias,
-                        onSelect = {
-                            setIcon(context, option.alias)
-                            prefs.saveIconAlias(option.alias)
-                            currentIcon = option.alias
-                            Toast.makeText(context, "Icon changed to ${option.name}", Toast.LENGTH_SHORT).show()
+                // Security Section
+                item {
+                    Text(
+                        "Security",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BlackCherry,
+                        modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
+                    )
+                }
+                
+                item {
+                    ExpressiveSettingsCard(
+                        title = "Access PIN",
+                        subtitle = "Change your vault access code",
+                        icon = Icons.Default.Lock,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showPinDialog = true
                         }
                     )
                 }
+                
+                item {
+                    ExpressiveSettingsCard(
+                        title = "Decoy PIN",
+                        subtitle = "Set a fake PIN that shows empty vault",
+                        icon = Icons.Default.VisibilityOff,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            showFakePinDialog = true
+                        }
+                    )
+                }
+
+                // Appearance Section
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Appearance",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = BlackCherry,
+                        modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
+                    )
+                }
+
+                item {
+                    Text(
+                        "App Icon",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextPrimary,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                    )
+                }
+
+                // Icon Grid
+                item {
+                    val icons = listOf(
+                        IconOption("Calculator", "MainActivity", Icons.Default.Calculate),
+                        IconOption("Weather", "com.example.hida.WeatherAlias", Icons.Default.WbSunny),
+                        IconOption("Notes", "com.example.hida.NotesAlias", Icons.Default.Edit),
+                        IconOption("Clock", "com.example.hida.ClockAlias", Icons.Default.AccessTime),
+                        IconOption("Music", "com.example.hida.MusicAlias", Icons.Default.MusicNote),
+                        IconOption("Calendar", "com.example.hida.CalendarAlias", Icons.Default.CalendarToday),
+                        IconOption("Mail", "com.example.hida.MailAlias", Icons.Default.Mail),
+                        IconOption("Browser", "com.example.hida.BrowserAlias", Icons.Default.Public),
+                        IconOption("Camera", "com.example.hida.CameraAlias", Icons.Default.CameraAlt),
+                        IconOption("Maps", "com.example.hida.MapsAlias", Icons.Default.Map),
+                        IconOption("Phone", "com.example.hida.PhoneAlias", Icons.Default.Phone),
+                        IconOption("Contacts", "com.example.hida.ContactsAlias", Icons.Default.Contacts),
+                        IconOption("Messages", "com.example.hida.MessagesAlias", Icons.Default.Message),
+                        IconOption("Settings", "com.example.hida.SettingsAlias", Icons.Default.Settings),
+                        IconOption("Play Store", "com.example.hida.PlayStoreAlias", Icons.Default.Shop),
+                        IconOption("Drive", "com.example.hida.DriveAlias", Icons.Default.Cloud),
+                        IconOption("Files", "com.example.hida.FilesAlias", Icons.Default.Folder),
+                        IconOption("Radio", "com.example.hida.RadioAlias", Icons.Default.Radio)
+                    )
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.height(400.dp),
+                        userScrollEnabled = false
+                    ) {
+                        items(icons) { iconOption ->
+                            ExpressiveIconSelector(
+                                iconOption = iconOption,
+                                isSelected = currentIcon == iconOption.componentName ||
+                                        (currentIcon == "MainActivity" && iconOption.componentName == "MainActivity"),
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    switchIcon(context, currentIcon, iconOption.componentName)
+                                    prefs.saveIconAlias(iconOption.componentName)
+                                    currentIcon = iconOption.componentName
+                                    Toast.makeText(context, "Icon changed to ${iconOption.name}", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
             }
         }
-    }
 
-    if (showPinDialog) {
-        ChangePinDialog(
-            title = "Set Real PIN",
-            onDismiss = { showPinDialog = false },
-            onConfirm = { newPin ->
-                prefs.savePin(newPin)
-                showPinDialog = false
-                Toast.makeText(context, "Real PIN Updated", Toast.LENGTH_SHORT).show()
-            }
-        )
-    }
+        // PIN Dialog
+        if (showPinDialog) {
+            ExpressivePinDialog(
+                title = "Change Access PIN",
+                currentPin = prefs.getPin(),
+                onDismiss = { showPinDialog = false },
+                onConfirm = { newPin ->
+                    prefs.savePin(newPin)
+                    showPinDialog = false
+                    Toast.makeText(context, "PIN updated", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
 
-    if (showFakePinDialog) {
-        ChangePinDialog(
-            title = "Set Fake PIN",
-            onDismiss = { showFakePinDialog = false },
-            onConfirm = { newPin ->
-                prefs.saveFakePin(newPin)
-                showFakePinDialog = false
-                Toast.makeText(context, "Fake PIN Updated", Toast.LENGTH_SHORT).show()
-            }
-        )
+        // Fake PIN Dialog
+        if (showFakePinDialog) {
+            ExpressivePinDialog(
+                title = "Set Decoy PIN",
+                currentPin = prefs.getFakePin(),
+                onDismiss = { showFakePinDialog = false },
+                onConfirm = { newPin ->
+                    prefs.saveFakePin(newPin)
+                    showFakePinDialog = false
+                    Toast.makeText(context, "Decoy PIN set", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
     }
 }
 
-data class IconOption(val name: String, val alias: String, val icon: ImageVector)
-
 @Composable
-fun SettingsItem(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
-    Row(
+fun ExpressiveSettingsCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "cardScale"
+    )
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF1C1C1E))
-            .clickable { onClick() }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceElevated)
     ) {
-        Icon(icon, null, tint = Color.White, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-            Text(subtitle, color = Color.Gray, fontSize = 14.sp)
+        Row(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(BlackCherry.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = BlackCherry,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = TextPrimary
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextTertiary
+                )
+            }
+            
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextTertiary
+            )
         }
     }
 }
 
 @Composable
-fun IconGridItem(option: IconOption, isSelected: Boolean, onSelect: () -> Unit) {
+fun ExpressiveIconSelector(
+    iconOption: IconOption,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.9f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "iconScale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) Color(0xFF3A3A3C) else Color(0xFF1C1C1E))
-            .clickable { onSelect() }
-            .padding(12.dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
-        Icon(
-            option.icon, 
-            null, 
-            tint = if (isSelected) Color(0xFFFF9F0A) else Color.White, 
-            modifier = Modifier.size(32.dp)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    if (isSelected) BlackCherry else SurfaceContainer
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                iconOption.icon,
+                contentDescription = iconOption.name,
+                tint = if (isSelected) TextPrimary else TextSecondary,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(4.dp))
+        
         Text(
-            option.name, 
-            color = if (isSelected) Color.White else Color.Gray, 
-            fontSize = 12.sp,
+            text = iconOption.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isSelected) TextPrimary else TextTertiary,
             maxLines = 1
         )
     }
 }
 
 @Composable
-fun ChangePinDialog(title: String, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+fun ExpressivePinDialog(
+    title: String,
+    currentPin: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var pin by remember { mutableStateOf(currentPin) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        containerColor = SurfaceElevated,
+        shape = RoundedCornerShape(28.dp),
+        title = {
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = TextPrimary
+            )
+        },
         text = {
             OutlinedTextField(
-                value = text,
-                onValueChange = { if (it.length <= 4 && it.all { c -> c.isDigit() }) text = it },
-                label = { Text("Enter 4 digits") },
+                value = pin,
+                onValueChange = { if (it.length <= 10 && it.all { c -> c.isDigit() }) pin = it },
+                label = { Text("Enter PIN") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BlackCherry,
+                    unfocusedBorderColor = SurfaceContainer,
+                    focusedLabelColor = BlackCherry,
+                    cursorColor = BlackCherry
+                ),
                 singleLine = true
             )
         },
         confirmButton = {
-            TextButton(onClick = { if (text.length == 4) onConfirm(text) }) {
-                Text("Save")
+            TextButton(
+                onClick = { if (pin.isNotEmpty()) onConfirm(pin) }
+            ) {
+                Text("Save", color = BlackCherry)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = TextSecondary)
             }
         }
     )
 }
 
-fun setIcon(context: Context, activeAlias: String) {
-    val pm = context.packageManager
-    val packageName = context.packageName
-    
-    val aliases = listOf(
-        "MainActivity",
-        "com.example.hida.WeatherAlias",
-        "com.example.hida.NotesAlias",
-        "com.example.hida.ClockAlias",
-        "com.example.hida.MusicAlias",
-        "com.example.hida.CalendarAlias",
-        "com.example.hida.MailAlias",
-        "com.example.hida.BrowserAlias",
-        "com.example.hida.CameraAlias",
-        "com.example.hida.MapsAlias",
-        "com.example.hida.PhoneAlias",
-        "com.example.hida.ContactsAlias",
-        "com.example.hida.MessagesAlias",
-        "com.example.hida.SettingsAlias",
-        "com.example.hida.PlayStoreAlias",
-        "com.example.hida.DriveAlias",
-        "com.example.hida.FilesAlias",
-        "com.example.hida.RadioAlias"
-    )
+data class IconOption(
+    val name: String,
+    val componentName: String,
+    val icon: ImageVector
+)
 
-    aliases.forEach { alias ->
-        val state = if (alias == activeAlias) {
-            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-        } else {
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-        }
-        
-        val componentName = ComponentName(packageName, if (alias == "MainActivity") "$packageName.MainActivity" else alias)
-        
-        try {
-            pm.setComponentEnabledSetting(
-                componentName,
-                state,
-                PackageManager.DONT_KILL_APP
-            )
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+private fun switchIcon(context: Context, currentAlias: String, newAlias: String) {
+    val pm = context.packageManager
+    
+    // Disable current
+    val currentComponent = if (currentAlias == "MainActivity") {
+        ComponentName(context, "com.example.hida.MainActivity")
+    } else {
+        ComponentName(context, currentAlias)
     }
+    
+    pm.setComponentEnabledSetting(
+        currentComponent,
+        PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+        PackageManager.DONT_KILL_APP
+    )
+    
+    // Enable new
+    val newComponent = if (newAlias == "MainActivity") {
+        ComponentName(context, "com.example.hida.MainActivity")
+    } else {
+        ComponentName(context, newAlias)
+    }
+    
+    pm.setComponentEnabledSetting(
+        newComponent,
+        PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+        PackageManager.DONT_KILL_APP
+    )
 }
