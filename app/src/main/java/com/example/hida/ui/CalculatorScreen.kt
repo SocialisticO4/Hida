@@ -1,11 +1,6 @@
 package com.example.hida.ui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -17,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
@@ -28,13 +22,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
@@ -42,29 +34,33 @@ import kotlinx.coroutines.delay
 import kotlin.math.*
 
 // =============================================================================
-// MATERIAL 3 EXPRESSIVE TONAL PALETTE
+// M3 EXPRESSIVE TONAL PALETTE
 // =============================================================================
-private object M3Tones {
-    // Background / Surface Stack
-    val T0 = Color(0xFF000000)
-    val T10 = Color(0xFF1A0F10)
-    val T20 = Color(0xFF2C1C1D)
-    val T22 = Color(0xFF2A1C1C)
-    val T30 = Color(0xFF3D2B2C)
-    val T40 = Color(0xFF4A3E3D)
-    val T45 = Color(0xFF524646)
-    val T50 = Color(0xFF5E4C4B)
+private object CalcColors {
+    val Background = Color(0xFF000000)
+    val Surface = Color(0xFF1A0F10)
+    val SurfaceVariant = Color(0xFF2C1C1D)
     
-    // Primary (AC Button)
-    val Primary60 = Color(0xFF7A332C)
+    // Number buttons - warm dark tones
+    val NumberBg = Color(0xFF3D2B2C)
+    val NumberText = Color(0xFFE8D9D9)
     
-    // Tertiary (Equals Button)
-    val Tertiary80 = Color(0xFFD1B270)
+    // Operator buttons
+    val OperatorBg = Color(0xFF524646)
+    val OperatorText = Color(0xFFD8C3C3)
     
-    // Text / Cursor
-    val OnSurfaceHigh = Color(0xFFE8D9D9)
-    val OnSurfaceMedium = Color(0xFFD8C3C3)
-    val CursorHighlight = Color(0xFFE2B4B7)
+    // AC button - Primary accent
+    val AcBg = Color(0xFF7A332C)
+    val AcText = Color(0xFFE8D9D9)
+    
+    // Equals button - Tertiary gold
+    val EqualsBg = Color(0xFFD1B270)
+    val EqualsText = Color(0xFF000000)
+    
+    // Cursor and result preview
+    val Cursor = Color(0xFFE2B4B7)
+    val ResultPreview = Color(0xFFD1B270)
+    val HistoryText = Color(0xFF888888)
 }
 
 // =============================================================================
@@ -77,20 +73,13 @@ fun CalculatorScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    
-    // Button diameter: 21-22% of screen width
-    val buttonDiameter = screenWidth * 0.21f
-    val buttonSpacing = 12.dp
     
     // State
-    var expression by remember { mutableStateOf("") }
-    var secondaryResult by remember { mutableStateOf("") }
+    var expression by remember { mutableStateOf("0") }
+    var resultPreview by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
-    var showClearDialog by remember { mutableStateOf(false) }
     
-    // Blinking cursor
+    // Blinking cursor state
     var cursorVisible by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -99,39 +88,52 @@ fun CalculatorScreen(
         }
     }
 
-    // Calculate secondary result
+    // Calculate live result preview
     LaunchedEffect(expression) {
-        secondaryResult = try {
-            if (expression.isNotEmpty()) {
+        resultPreview = try {
+            if (expression.isNotEmpty() && expression != "0" && expression != "Error") {
                 val result = evaluateExpression(expression)
-                formatResult(result)
+                val formatted = formatResult(result)
+                if (formatted != expression) formatted else ""
             } else ""
         } catch (e: Exception) { "" }
     }
 
-    fun appendToExpression(value: String) {
+    fun append(value: String) {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        expression += value
+        expression = when {
+            expression == "0" && value != "." -> value
+            expression == "Error" -> value
+            else -> expression + value
+        }
+    }
+
+    fun appendOperator(op: String) {
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        val lastChar = expression.lastOrNull()
+        expression = when {
+            expression == "0" && op == "-" -> "-"
+            expression == "Error" -> "0"
+            lastChar != null && lastChar in "+-×÷" -> expression.dropLast(1) + op
+            else -> expression + op
+        }
     }
 
     fun handleEquals() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         
-        // Check for PIN unlock
+        // Check PIN unlock
         val prefs = PreferencesManager(context)
-        val realPin = prefs.getPin()
-        val fakePin = prefs.getFakePin()
-        
         when (expression) {
-            realPin -> { onUnlock(false); return }
-            fakePin -> if (fakePin.isNotEmpty()) { onUnlock(true); return }
+            prefs.getPin() -> { onUnlock(false); return }
+            prefs.getFakePin() -> if (prefs.getFakePin().isNotEmpty()) { onUnlock(true); return }
         }
         
-        // Normal calculation
+        // Calculate
         try {
             val result = evaluateExpression(expression)
             expression = formatResult(result)
-            secondaryResult = ""
+            resultPreview = ""
         } catch (e: Exception) {
             expression = "Error"
         }
@@ -139,276 +141,214 @@ fun CalculatorScreen(
 
     fun clear() {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        expression = ""
-        secondaryResult = ""
+        expression = "0"
+        resultPreview = ""
     }
 
     fun backspace() {
         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        if (expression.isNotEmpty()) expression = expression.dropLast(1)
+        expression = when {
+            expression.length <= 1 -> "0"
+            expression == "Error" -> "0"
+            else -> expression.dropLast(1)
+        }
     }
 
-    // UI
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = M3Tones.T0
+        color = CalcColors.Background
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
         ) {
-            // ⭐ TOOLBAR ZONE (Row 1)
+            // Toolbar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = { /* History */ }) {
-                    Icon(
-                        Icons.Default.History,
-                        contentDescription = "History",
-                        tint = M3Tones.OnSurfaceMedium
-                    )
+                IconButton(onClick = { }) {
+                    Icon(Icons.Default.History, "History", tint = CalcColors.OperatorText)
                 }
-                
                 Box {
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            tint = M3Tones.OnSurfaceMedium
-                        )
+                        Icon(Icons.Default.MoreVert, "Menu", tint = CalcColors.OperatorText)
                     }
-                    
                     DropdownMenu(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false },
-                        containerColor = M3Tones.T22,
-                        shape = RoundedCornerShape(28.dp)
+                        containerColor = CalcColors.SurfaceVariant,
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        listOf("Clear history", "Choose theme", "Privacy policy", "Send feedback", "Help").forEach { item ->
+                        listOf("Clear history", "Settings").forEach { item ->
                             DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        item,
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 28.sp),
-                                        color = M3Tones.OnSurfaceHigh
-                                    )
-                                },
-                                onClick = {
-                                    if (item == "Clear history") showClearDialog = true
-                                    showMenu = false
-                                },
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)
+                                text = { Text(item, color = CalcColors.NumberText) },
+                                onClick = { showMenu = false }
                             )
                         }
                     }
                 }
             }
 
-            // ⭐ EXPRESSION ZONE (40-45% of screen)
+            // Display Area
             Column(
                 modifier = Modifier
-                    .weight(0.42f)
+                    .weight(1f)
                     .fillMaxWidth()
-                    .padding(end = 24.dp, top = 20.dp),
+                    .padding(horizontal = 24.dp),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.End
             ) {
                 // Expression with cursor
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = expression.ifEmpty { "0" },
+                        text = expression,
                         style = MaterialTheme.typography.displayLarge.copy(
                             fontSize = when {
-                                expression.length > 12 -> 40.sp
-                                expression.length > 8 -> 50.sp
-                                else -> 60.sp
+                                expression.length > 14 -> 36.sp
+                                expression.length > 10 -> 48.sp
+                                expression.length > 7 -> 56.sp
+                                else -> 72.sp
                             },
-                            fontWeight = FontWeight.W400
+                            fontWeight = FontWeight.W300,
+                            letterSpacing = 1.sp
                         ),
-                        color = M3Tones.OnSurfaceHigh,
+                        color = CalcColors.NumberText,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         textAlign = TextAlign.End
                     )
                     
-                    // Blinking cursor
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 2.dp)
-                            .width(4.dp)
-                            .height(56.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(
-                                if (cursorVisible) M3Tones.CursorHighlight
-                                else Color.Transparent
-                            )
-                    )
+                    // Cursor
+                    if (cursorVisible) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 2.dp, bottom = 8.dp)
+                                .width(3.dp)
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(CalcColors.Cursor)
+                        )
+                    }
                 }
                 
-                // Secondary result
-                if (secondaryResult.isNotEmpty() && secondaryResult != expression) {
+                // Result Preview
+                if (resultPreview.isNotEmpty()) {
                     Text(
-                        text = "= $secondaryResult",
+                        text = "= $resultPreview",
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.W400
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.W300
                         ),
-                        color = M3Tones.Tertiary80,
-                        modifier = Modifier.padding(top = 12.dp),
-                        textAlign = TextAlign.End
+                        color = CalcColors.ResultPreview,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
                     )
+                } else {
+                    Spacer(modifier = Modifier.height(56.dp))
                 }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                // Scroll indicator (chevron)
-                Icon(
-                    Icons.Default.ExpandLess,
-                    contentDescription = null,
-                    tint = M3Tones.OnSurfaceMedium.copy(alpha = 0.5f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
             }
 
-            // ⭐ KEYPAD GRID (5 rows × 4 columns)
+            // Keypad
             Column(
                 modifier = Modifier
-                    .weight(0.58f)
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Row 1: AC, (), %, ÷
-                KeypadRow(buttonDiameter, buttonSpacing) {
-                    M3Button("AC", M3Tones.Primary60, M3Tones.OnSurfaceHigh, buttonDiameter, true) { clear() }
-                    M3Button("()", M3Tones.T45, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("()") }
-                    M3Button("%", M3Tones.T50, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("%") }
-                    M3Button("÷", M3Tones.T50, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("÷") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CalcButton("AC", CalcColors.AcBg, CalcColors.AcText, Modifier.weight(1f)) { clear() }
+                    CalcButton("( )", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { append("()") }
+                    CalcButton("%", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { append("%") }
+                    CalcButton("÷", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("÷") }
                 }
                 
                 // Row 2: 7, 8, 9, ×
-                KeypadRow(buttonDiameter, buttonSpacing) {
-                    M3Button("7", M3Tones.T40, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("7") }
-                    M3Button("8", M3Tones.T45, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("8") }
-                    M3Button("9", M3Tones.T50, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("9") }
-                    M3Button("×", M3Tones.T50, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("×") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CalcButton("7", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("7") }
+                    CalcButton("8", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("8") }
+                    CalcButton("9", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("9") }
+                    CalcButton("×", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("×") }
                 }
                 
-                // Row 3: 4, 5, 6, −
-                KeypadRow(buttonDiameter, buttonSpacing) {
-                    M3Button("4", M3Tones.T40, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("4") }
-                    M3Button("5", M3Tones.T45, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("5") }
-                    M3Button("6", M3Tones.T50, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("6") }
-                    M3Button("−", M3Tones.T50, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("-") }
+                // Row 3: 4, 5, 6, -
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CalcButton("4", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("4") }
+                    CalcButton("5", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("5") }
+                    CalcButton("6", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("6") }
+                    CalcButton("−", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("-") }
                 }
                 
                 // Row 4: 1, 2, 3, +
-                KeypadRow(buttonDiameter, buttonSpacing) {
-                    M3Button("1", M3Tones.T40, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("1") }
-                    M3Button("2", M3Tones.T45, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("2") }
-                    M3Button("3", M3Tones.T50, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("3") }
-                    M3Button("+", M3Tones.T50, M3Tones.OnSurfaceMedium, buttonDiameter) { appendToExpression("+") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CalcButton("1", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("1") }
+                    CalcButton("2", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("2") }
+                    CalcButton("3", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("3") }
+                    CalcButton("+", CalcColors.OperatorBg, CalcColors.OperatorText, Modifier.weight(1f)) { appendOperator("+") }
                 }
                 
                 // Row 5: 0, ., ⌫, =
-                KeypadRow(buttonDiameter, buttonSpacing) {
-                    M3Button("0", M3Tones.T40, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression("0") }
-                    M3Button(".", M3Tones.T45, M3Tones.OnSurfaceHigh, buttonDiameter) { appendToExpression(".") }
-                    M3BackspaceButton(M3Tones.T50, M3Tones.OnSurfaceHigh, buttonDiameter) { backspace() }
-                    M3Button("=", M3Tones.Tertiary80, Color.Black, buttonDiameter, true) { handleEquals() }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    CalcButton("0", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { append("0") }
+                    CalcButton(".", CalcColors.NumberBg, CalcColors.NumberText, Modifier.weight(1f)) { 
+                        if (!expression.contains(".") || expression.any { it in "+-×÷" }) append(".") 
+                    }
+                    BackspaceButton(CalcColors.OperatorBg, CalcColors.NumberText, Modifier.weight(1f)) { backspace() }
+                    CalcButton("=", CalcColors.EqualsBg, CalcColors.EqualsText, Modifier.weight(1f)) { handleEquals() }
                 }
             }
-        }
-
-        // Clear Dialog
-        if (showClearDialog) {
-            AlertDialog(
-                onDismissRequest = { showClearDialog = false },
-                containerColor = M3Tones.T10,
-                shape = RoundedCornerShape(24.dp),
-                title = {
-                    Text(
-                        "Clear history?",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = M3Tones.OnSurfaceHigh
-                    )
-                },
-                text = {
-                    Text(
-                        "This will permanently delete all calculation history.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = M3Tones.OnSurfaceMedium
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = { showClearDialog = false }) {
-                        Text("Clear", color = M3Tones.Tertiary80)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showClearDialog = false }) {
-                        Text("Dismiss", color = M3Tones.OnSurfaceMedium)
-                    }
-                }
-            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 // =============================================================================
-// KEYPAD ROW
-// =============================================================================
-@Composable
-private fun KeypadRow(
-    buttonDiameter: Dp,
-    spacing: Dp,
-    content: @Composable RowScope.() -> Unit
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(spacing),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content
-    )
-}
-
-// =============================================================================
-// M3 BUTTON (Perfect Circle)
+// CALC BUTTON
 // =============================================================================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun M3Button(
+private fun CalcButton(
     label: String,
-    backgroundColor: Color,
+    bgColor: Color,
     textColor: Color,
-    diameter: Dp,
-    isEmphasized: Boolean = false,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
-    // Scale animation: 0.94× on press
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = tween(
-            durationMillis = if (isPressed) 90 else 120,
-            easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
-        ),
-        label = "buttonScale"
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "scale"
     )
 
     Surface(
-        modifier = Modifier
-            .size(diameter)
+        modifier = modifier
+            .aspectRatio(1f)
             .scale(scale)
             .clip(CircleShape)
             .combinedClickable(
@@ -416,7 +356,7 @@ private fun M3Button(
                 indication = LocalIndication.current,
                 onClick = onClick
             ),
-        color = backgroundColor,
+        color = bgColor,
         shape = CircleShape
     ) {
         Box(
@@ -425,10 +365,13 @@ private fun M3Button(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = if (label == "AC" || label == "=") 40.sp else 44.sp,
-                    fontWeight = if (isEmphasized) FontWeight.W600 else FontWeight.W500,
-                    letterSpacing = if (label.length == 1 && label[0].isDigit()) 0.5.sp else 1.sp
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = when (label) {
+                        "AC" -> 28.sp
+                        "( )" -> 24.sp
+                        else -> 32.sp
+                    },
+                    fontWeight = if (label in listOf("AC", "=")) FontWeight.W600 else FontWeight.W400
                 ),
                 color = textColor
             )
@@ -437,31 +380,28 @@ private fun M3Button(
 }
 
 // =============================================================================
-// M3 BACKSPACE BUTTON
+// BACKSPACE BUTTON
 // =============================================================================
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun M3BackspaceButton(
-    backgroundColor: Color,
+private fun BackspaceButton(
+    bgColor: Color,
     iconColor: Color,
-    diameter: Dp,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.94f else 1f,
-        animationSpec = tween(
-            durationMillis = if (isPressed) 90 else 120,
-            easing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
-        ),
-        label = "backspaceScale"
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "scale"
     )
 
     Surface(
-        modifier = Modifier
-            .size(diameter)
+        modifier = modifier
+            .aspectRatio(1f)
             .scale(scale)
             .clip(CircleShape)
             .combinedClickable(
@@ -469,7 +409,7 @@ private fun M3BackspaceButton(
                 indication = LocalIndication.current,
                 onClick = onClick
             ),
-        color = backgroundColor,
+        color = bgColor,
         shape = CircleShape
     ) {
         Box(
@@ -504,9 +444,11 @@ private fun evalSimple(expr: String): Double {
     var expression = expr.trim()
     if (expression.isEmpty()) return 0.0
     
+    // Handle multiplication and division first
     var result = 0.0
     var currentOp = '+'
     var currentNum = ""
+    var terms = mutableListOf<Pair<Char, Double>>()
     
     for (char in "$expression+") {
         when {
@@ -515,18 +457,34 @@ private fun evalSimple(expr: String): Double {
             }
             char in "+-*/" -> {
                 if (currentNum.isNotEmpty()) {
-                    val num = currentNum.toDoubleOrNull() ?: 0.0
-                    result = when (currentOp) {
-                        '+' -> result + num
-                        '-' -> result - num
-                        '*' -> result * num
-                        '/' -> if (num != 0.0) result / num else Double.NaN
-                        else -> result
-                    }
+                    terms.add(Pair(currentOp, currentNum.toDoubleOrNull() ?: 0.0))
                     currentNum = ""
                 }
                 currentOp = char
             }
+        }
+    }
+    
+    // Process multiplication and division
+    var i = 0
+    while (i < terms.size) {
+        val (op, num) = terms[i]
+        if (op == '*' || op == '/') {
+            val prev = terms[i - 1].second
+            val newVal = if (op == '*') prev * num else if (num != 0.0) prev / num else Double.NaN
+            terms[i - 1] = Pair(terms[i - 1].first, newVal)
+            terms.removeAt(i)
+        } else {
+            i++
+        }
+    }
+    
+    // Process addition and subtraction
+    for ((op, num) in terms) {
+        result = when (op) {
+            '+' -> result + num
+            '-' -> result - num
+            else -> result
         }
     }
     
