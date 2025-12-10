@@ -160,7 +160,7 @@ fun SettingsScreen(
                         IconOption("Maps", "com.example.hida.MapsAlias", Icons.Default.Map),
                         IconOption("Phone", "com.example.hida.PhoneAlias", Icons.Default.Phone),
                         IconOption("Contacts", "com.example.hida.ContactsAlias", Icons.Default.Contacts),
-                        IconOption("Messages", "com.example.hida.MessagesAlias", Icons.Default.Message),
+                        IconOption("Messages", "com.example.hida.MessagesAlias", Icons.AutoMirrored.Filled.Message),
                         IconOption("Settings", "com.example.hida.SettingsAlias", Icons.Default.Settings),
                         IconOption("Play Store", "com.example.hida.PlayStoreAlias", Icons.Default.Shop),
                         IconOption("Drive", "com.example.hida.DriveAlias", Icons.Default.Cloud),
