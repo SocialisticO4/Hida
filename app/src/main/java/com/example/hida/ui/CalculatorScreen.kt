@@ -1,16 +1,16 @@
 package com.example.hida.ui
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -273,15 +273,14 @@ fun MD3CalculatorButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
-    val scale by remember { Animatable(1f) }
-    
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            scale.animateTo(0.92f, spring(stiffness = Spring.StiffnessHigh))
-        } else {
-            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
-        }
-    }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "buttonScale"
+    )
 
     val containerColor = when (buttonType) {
         ButtonType.PRIMARY -> MaterialTheme.colorScheme.primary
@@ -296,19 +295,14 @@ fun MD3CalculatorButton(
         ButtonType.TERTIARY -> MaterialTheme.colorScheme.onSurfaceVariant
         ButtonType.SURFACE -> MaterialTheme.colorScheme.onSurface
     }
-    
-    val rippleColor = when (buttonType) {
-        ButtonType.PRIMARY -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
-        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-    }
 
     Surface(
         modifier = modifier
-            .scale(scale.value)
+            .scale(scale)
             .clip(if (symbol == "0") SquircleShape else CircleShape)
             .combinedClickable(
                 interactionSource = interactionSource,
-                indication = rememberRipple(color = rippleColor),
+                indication = LocalIndication.current,
                 onClick = onClick,
                 onLongClick = onLongClick
             ),
