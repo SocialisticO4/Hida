@@ -109,22 +109,25 @@ class MediaRepository(private val context: Context) {
     suspend fun deleteOriginal(uri: Uri): IntentSender? {
         return withContext(Dispatchers.IO) {
             try {
-                context.contentResolver.delete(uri, null, null)
-                null // Success, no permission needed
-            } catch (securityEx: SecurityException) {
-                // Android 10/11+ Scoped Storage
-                val recoverable = securityEx as? RecoverableSecurityException
-                if (recoverable != null) {
-                    return@withContext recoverable.userAction.actionIntent.intentSender
-                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    // Android 11+ specific trash request
-                    return@withContext MediaStore.createTrashRequest(
-                        context.contentResolver, 
-                        listOf(uri), 
-                        true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    // Android 11+ - Use createDeleteRequest which always shows system dialog
+                    return@withContext MediaStore.createDeleteRequest(
+                        context.contentResolver,
+                        listOf(uri)
                     ).intentSender
+                } else {
+                    // Android 10 and below - Try direct delete
+                    try {
+                        context.contentResolver.delete(uri, null, null)
+                        null
+                    } catch (securityEx: SecurityException) {
+                        val recoverable = securityEx as? RecoverableSecurityException
+                        recoverable?.userAction?.actionIntent?.intentSender
+                    }
                 }
-                throw securityEx
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
             }
         }
     }
