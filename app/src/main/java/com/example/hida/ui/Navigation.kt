@@ -10,6 +10,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.hida.data.MediaRepository
+import java.net.URLDecoder
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 sealed class Screen(val route: String) {
     object Calculator : Screen("calculator_screen")
@@ -18,10 +21,16 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings_screen")
     object VideoPlayer : Screen("video_player/{filePath}") {
-        fun createRoute(filePath: String) = "video_player/$filePath"
+        fun createRoute(filePath: String): String {
+            val encoded = URLEncoder.encode(filePath, StandardCharsets.UTF_8.toString())
+            return "video_player/$encoded"
+        }
     }
     object ImageViewer : Screen("image_viewer/{filePath}") {
-        fun createRoute(filePath: String) = "image_viewer/$filePath"
+        fun createRoute(filePath: String): String {
+            val encoded = URLEncoder.encode(filePath, StandardCharsets.UTF_8.toString())
+            return "image_viewer/$encoded"
+        }
     }
 }
 
@@ -71,8 +80,9 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
             route = Screen.VideoPlayer.route,
             arguments = listOf(navArgument("filePath") { type = NavType.StringType })
         ) { backStackEntry ->
-            val filePath = backStackEntry.arguments?.getString("filePath")
-            if (filePath != null) {
+            val encodedPath = backStackEntry.arguments?.getString("filePath")
+            if (encodedPath != null) {
+                val filePath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
                 VideoPlayerScreen(
                     filePath = filePath,
                     onBack = { navController.popBackStack() }
@@ -83,8 +93,9 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
             route = Screen.ImageViewer.route,
             arguments = listOf(navArgument("filePath") { type = NavType.StringType })
         ) { backStackEntry ->
-            val filePath = backStackEntry.arguments?.getString("filePath")
-            if (filePath != null) {
+            val encodedPath = backStackEntry.arguments?.getString("filePath")
+            if (encodedPath != null) {
+                val filePath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
                 ImageViewerScreen(
                     filePath = filePath,
                     onBack = { navController.popBackStack() }
