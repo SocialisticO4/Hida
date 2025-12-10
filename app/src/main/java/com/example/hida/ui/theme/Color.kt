@@ -3,99 +3,79 @@ package com.example.hida.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * VAMPIRE CORE Theme Colors
- * Seed Color: #5D0E1D (Deep Wine Red)
+ * Material 3 Expressive Tonal Palette
+ * Warm-neutral reds, warm browns, low-contrast surface layers
  */
 
 // =============================================================================
-// VAMPIRE CORE PALETTE
+// TONAL PALETTE (Exact Values)
 // =============================================================================
 
-// Background & Surface
-val VampireBackground = Color(0xFF000000)        // True Black
-val VampireSurface = Color(0xFF140508)           // Very dark red-black
-val VampireSurfaceHigh = Color(0xFF1C080C)       // Slightly elevated surface
+// Background / Surface Stack
+val T0 = Color(0xFF000000)
+val T10 = Color(0xFF1A0F10)
+val T20 = Color(0xFF2C1C1D)
+val T22 = Color(0xFF2A1C1C)
+val T30 = Color(0xFF3D2B2C)
+val T40 = Color(0xFF4A3E3D)
+val T45 = Color(0xFF524646)
+val T50 = Color(0xFF5E4C4B)
 
-// Primary (Wine Red)
-val VampirePrimary = Color(0xFF781023)           // Vibrant Wine Red
-val VampireOnPrimary = Color(0xFFFFFFFF)         // White
-val VampirePrimaryContainer = Color(0xFF781023)
-val VampireOnPrimaryContainer = Color(0xFFFFFFFF)
+// Primary (AC Button)
+val Primary60 = Color(0xFF7A332C)
 
-// Secondary (Dark Grey for Numbers)
-val VampireSecondary = Color(0xFF181818)         // Dark Grey
-val VampireOnSecondary = Color(0xFFE0E0E0)       // Off-white
-val VampireSecondaryContainer = Color(0xFF181818)
-val VampireOnSecondaryContainer = Color(0xFFE0E0E0)
+// Tertiary (Equals Button)
+val Tertiary80 = Color(0xFFD1B270)
 
-// Tertiary (Operators)
-val VampireTertiary = Color(0xFF2B0B11)          // Darkened Red-Brown
-val VampireOnTertiary = Color(0xFFFFB4AB)        // Pale Pink
-val VampireTertiaryContainer = Color(0xFF2B0B11)
-val VampireOnTertiaryContainer = Color(0xFFFFB4AB)
-
-// Function Buttons
-val VampireFunction = Color(0xFF252525)          // Light Grey
-val VampireOnFunction = Color(0xFFD88E96)        // Muted Pink
-
-// Accent Colors
-val VampireResultPreview = Color(0xFFFF8996)     // Pink preview text
-val VampireHistory = Color(0xFF666666)           // Grey history
-
-// Error
-val VampireError = Color(0xFFCF6679)
-val VampireOnError = Color(0xFF000000)
-val VampireErrorContainer = Color(0xFF3D0A0A)
-val VampireOnErrorContainer = Color(0xFFFFB4AB)
-
-// Outline
-val VampireOutline = Color(0xFF444444)
-val VampireOutlineVariant = Color(0xFF2A2A2A)
+// Text / Cursor Colors
+val OnSurfaceHigh = Color(0xFFE8D9D9)
+val OnSurfaceMedium = Color(0xFFD8C3C3)
+val CursorHighlight = Color(0xFFE2B4B7)
 
 // =============================================================================
 // MD3 COLOR ROLES (Dark Theme)
 // =============================================================================
-val md3_dark_primary = VampirePrimary
-val md3_dark_onPrimary = VampireOnPrimary
-val md3_dark_primaryContainer = VampirePrimaryContainer
-val md3_dark_onPrimaryContainer = VampireOnPrimaryContainer
+val md3_dark_primary = Primary60
+val md3_dark_onPrimary = OnSurfaceHigh
+val md3_dark_primaryContainer = Primary60
+val md3_dark_onPrimaryContainer = OnSurfaceHigh
 
-val md3_dark_secondary = VampireSecondary
-val md3_dark_onSecondary = VampireOnSecondary
-val md3_dark_secondaryContainer = VampireSecondaryContainer
-val md3_dark_onSecondaryContainer = VampireOnSecondaryContainer
+val md3_dark_secondary = T45
+val md3_dark_onSecondary = OnSurfaceHigh
+val md3_dark_secondaryContainer = T40
+val md3_dark_onSecondaryContainer = OnSurfaceHigh
 
-val md3_dark_tertiary = VampireTertiary
-val md3_dark_onTertiary = VampireOnTertiary
-val md3_dark_tertiaryContainer = VampireTertiaryContainer
-val md3_dark_onTertiaryContainer = VampireOnTertiaryContainer
+val md3_dark_tertiary = Tertiary80
+val md3_dark_onTertiary = Color.Black
+val md3_dark_tertiaryContainer = T50
+val md3_dark_onTertiaryContainer = OnSurfaceMedium
 
-val md3_dark_error = VampireError
-val md3_dark_onError = VampireOnError
-val md3_dark_errorContainer = VampireErrorContainer
-val md3_dark_onErrorContainer = VampireOnErrorContainer
+val md3_dark_error = Color(0xFFCF6679)
+val md3_dark_onError = Color.Black
+val md3_dark_errorContainer = T30
+val md3_dark_onErrorContainer = Color(0xFFFFB4AB)
 
-val md3_dark_background = VampireBackground
-val md3_dark_onBackground = Color(0xFFE0E0E0)
-val md3_dark_surface = VampireSurface
-val md3_dark_onSurface = Color(0xFFE0E0E0)
-val md3_dark_surfaceVariant = VampireSurfaceHigh
-val md3_dark_onSurfaceVariant = Color(0xFFAAAAAA)
+val md3_dark_background = T0
+val md3_dark_onBackground = OnSurfaceHigh
+val md3_dark_surface = T10
+val md3_dark_onSurface = OnSurfaceHigh
+val md3_dark_surfaceVariant = T20
+val md3_dark_onSurfaceVariant = OnSurfaceMedium
 
-val md3_dark_outline = VampireOutline
-val md3_dark_outlineVariant = VampireOutlineVariant
+val md3_dark_outline = T40
+val md3_dark_outlineVariant = T30
 
-val md3_dark_inverseSurface = Color(0xFFE0E0E0)
-val md3_dark_inverseOnSurface = VampireBackground
+val md3_dark_inverseSurface = OnSurfaceHigh
+val md3_dark_inverseOnSurface = T0
 val md3_dark_inversePrimary = Color(0xFF5D0E1D)
 
-val md3_dark_scrim = VampireBackground
-val md3_dark_shadow = VampireBackground
-val md3_dark_surfaceTint = VampirePrimary
+val md3_dark_scrim = T0
+val md3_dark_shadow = T0
+val md3_dark_surfaceTint = Primary60
 
 // Surface containers
-val md3_dark_surfaceContainerLowest = Color(0xFF000000)
-val md3_dark_surfaceContainerLow = Color(0xFF0A0305)
-val md3_dark_surfaceContainer = VampireSurface
-val md3_dark_surfaceContainerHigh = VampireSurfaceHigh
-val md3_dark_surfaceContainerHighest = Color(0xFF241014)
+val md3_dark_surfaceContainerLowest = T0
+val md3_dark_surfaceContainerLow = T10
+val md3_dark_surfaceContainer = T20
+val md3_dark_surfaceContainerHigh = T30
+val md3_dark_surfaceContainerHighest = T40
