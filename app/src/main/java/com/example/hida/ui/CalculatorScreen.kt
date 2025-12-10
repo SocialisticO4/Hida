@@ -33,9 +33,28 @@ fun CalculatorScreen(
     var displayText by remember { mutableStateOf("0") }
     var subDisplayText by remember { mutableStateOf("") }
     
-    var currentNumber by remember { mutableStateOf("") }
-    var operand1 by remember { mutableStateOf("") }
-    var operator by remember { mutableStateOf("") }
+    // Calculator state
+    var firstOperand by remember { mutableStateOf<Double?>(null) }
+    var pendingOperator by remember { mutableStateOf<String?>(null) }
+    var waitingForSecondOperand by remember { mutableStateOf(false) }
+
+    fun calculate(op1: Double, op2: Double, operator: String): Double {
+        return when (operator) {
+            "+" -> op1 + op2
+            "-" -> op1 - op2
+            "×" -> op1 * op2
+            "÷" -> if (op2 != 0.0) op1 / op2 else Double.NaN
+            else -> op2
+        }
+    }
+
+    fun formatResult(value: Double): String {
+        return if (value == value.toLong().toDouble()) {
+            value.toLong().toString()
+        } else {
+            String.format("%.8f", value).trimEnd('0').trimEnd('.')
+        }
+    }
 
     HidaTheme(darkTheme = isDarkTheme) {
         Surface(
@@ -66,11 +85,12 @@ fun CalculatorScreen(
                 ) {
                     Text(
                         text = displayText,
-                        fontSize = 80.sp,
+                        fontSize = if (displayText.length > 10) 50.sp else 80.sp,
                         fontWeight = FontWeight.Light,
                         color = MaterialTheme.colorScheme.onBackground,
                         textAlign = TextAlign.End,
-                        lineHeight = 80.sp
+                        lineHeight = 80.sp,
+                        maxLines = 1
                     )
                     if (subDisplayText.isNotEmpty()) {
                         Text(
@@ -93,7 +113,7 @@ fun CalculatorScreen(
                         listOf("7", "8", "9", "×"),
                         listOf("4", "5", "6", "-"),
                         listOf("1", "2", "3", "+"),
-                        listOf("0", ",", "=")
+                        listOf("0", ".", "=")
                     )
 
                     buttonRows.forEach { row ->
@@ -118,26 +138,75 @@ fun CalculatorScreen(
                                             "C" -> {
                                                 displayText = "0"
                                                 subDisplayText = ""
-                                                currentNumber = ""
-                                                operand1 = ""
-                                                operator = ""
+                                                firstOperand = null
+                                                pendingOperator = null
+                                                waitingForSecondOperand = false
+                                            }
+                                            "+/-" -> {
+                                                if (displayText != "0" && displayText != "Error") {
+                                                    displayText = if (displayText.startsWith("-")) {
+                                                        displayText.substring(1)
+                                                    } else {
+                                                        "-$displayText"
+                                                    }
+                                                }
+                                            }
+                                            "%" -> {
+                                                val value = displayText.toDoubleOrNull()
+                                                if (value != null) {
+                                                    displayText = formatResult(value / 100)
+                                                }
                                             }
                                             "=" -> {
                                                 val prefs = PreferencesManager(context)
                                                 val realPin = prefs.getPin()
                                                 val fakePin = prefs.getFakePin()
                                                 
+                                                // Check for PIN unlock first
                                                 if (displayText == realPin) {
                                                     onUnlock(false) // Real Mode
                                                 } else if (fakePin.isNotEmpty() && displayText == fakePin) {
                                                     onUnlock(true) // Fake Mode
                                                 } else {
-                                                    subDisplayText = "$displayText="
-                                                    displayText = "Error"
+                                                    // Perform actual calculation
+                                                    val currentValue = displayText.toDoubleOrNull()
+                                                    if (currentValue != null && firstOperand != null && pendingOperator != null) {
+                                                        val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
+                                                        subDisplayText = "$firstOperand $pendingOperator $currentValue ="
+                                                        displayText = if (result.isNaN()) "Error" else formatResult(result)
+                                                        firstOperand = null
+                                                        pendingOperator = null
+                                                        waitingForSecondOperand = false
+                                                    }
+                                                }
+                                            }
+                                            in listOf("+", "-", "×", "÷") -> {
+                                                val currentValue = displayText.toDoubleOrNull()
+                                                if (currentValue != null) {
+                                                    if (firstOperand != null && pendingOperator != null && !waitingForSecondOperand) {
+                                                        val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
+                                                        displayText = formatResult(result)
+                                                        firstOperand = result
+                                                    } else {
+                                                        firstOperand = currentValue
+                                                    }
+                                                    pendingOperator = label
+                                                    waitingForSecondOperand = true
+                                                }
+                                            }
+                                            "." -> {
+                                                if (!displayText.contains(".")) {
+                                                    displayText += "."
                                                 }
                                             }
                                             else -> {
-                                                if (displayText == "0") displayText = label else displayText += label
+                                                // Number input
+                                                if (displayText == "0" || displayText == "Error" || waitingForSecondOperand) {
+                                                    displayText = label
+                                                    waitingForSecondOperand = false
+                                                } else {
+                                                    displayText += label
+                                                }
                                             }
                                         }
                                     }
