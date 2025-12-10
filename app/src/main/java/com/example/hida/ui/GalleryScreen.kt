@@ -265,47 +265,84 @@ fun GalleryScreen(
             },
             floatingActionButton = {
                 if (!isFakeMode) {
-                    Box {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         // FAB Menu Items
                         AnimatedVisibility(
                             visible = showFabMenu,
                             enter = fadeIn() + scaleIn(),
-                            exit = fadeOut() + scaleOut(),
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .padding(bottom = 72.dp)
+                            exit = fadeOut() + scaleOut()
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.End,
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                SmallFloatingActionButton(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        pickMedia.launch(
-                                            androidx.activity.result.PickVisualMediaRequest(
-                                                ActivityResultContracts.PickVisualMedia.ImageOnly
-                                            )
-                                        )
-                                    },
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                // Import Photo option
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Image, "Import Photo")
+                                    Surface(
+                                        shape = HidaShapes.medium,
+                                        color = md3_dark_surfaceContainerHigh,
+                                        tonalElevation = 4.dp
+                                    ) {
+                                        Text(
+                                            text = "Photo",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    SmallFloatingActionButton(
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            pickMedia.launch(
+                                                androidx.activity.result.PickVisualMediaRequest(
+                                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                                )
+                                            )
+                                        },
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    ) {
+                                        Icon(Icons.Default.Image, "Import Photo")
+                                    }
                                 }
-                                SmallFloatingActionButton(
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        pickMedia.launch(
-                                            androidx.activity.result.PickVisualMediaRequest(
-                                                ActivityResultContracts.PickVisualMedia.VideoOnly
-                                            )
-                                        )
-                                    },
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                
+                                // Import Video option
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Movie, "Import Video")
+                                    Surface(
+                                        shape = HidaShapes.medium,
+                                        color = md3_dark_surfaceContainerHigh,
+                                        tonalElevation = 4.dp
+                                    ) {
+                                        Text(
+                                            text = "Video",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    SmallFloatingActionButton(
+                                        onClick = {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            pickMedia.launch(
+                                                androidx.activity.result.PickVisualMediaRequest(
+                                                    ActivityResultContracts.PickVisualMedia.VideoOnly
+                                                )
+                                            )
+                                        },
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    ) {
+                                        Icon(Icons.Default.Movie, "Import Video")
+                                    }
                                 }
                             }
                         }

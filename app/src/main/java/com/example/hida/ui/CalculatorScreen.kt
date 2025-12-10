@@ -64,6 +64,27 @@ fun CalculatorScreen(
     }
 
     fun handleEquals() {
+        val prefs = PreferencesManager(context)
+        val realPin = prefs.getPin()
+        val fakePin = prefs.getFakePin()
+        
+        // Check for PIN unlock first
+        when (displayText) {
+            realPin -> {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onUnlock(false) // Real Mode
+                return
+            }
+            fakePin -> {
+                if (fakePin.isNotEmpty()) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onUnlock(true) // Fake Mode
+                    return
+                }
+            }
+        }
+        
+        // Normal calculation if PIN doesn't match
         val currentValue = displayText.toDoubleOrNull()
         if (currentValue != null && firstOperand != null && pendingOperator != null) {
             val result = calculate(firstOperand!!, currentValue, pendingOperator!!)
@@ -72,29 +93,6 @@ fun CalculatorScreen(
             firstOperand = null
             pendingOperator = null
             waitingForSecondOperand = false
-        }
-    }
-
-    fun handleLongPressEquals() {
-        val prefs = PreferencesManager(context)
-        val realPin = prefs.getPin()
-        val fakePin = prefs.getFakePin()
-        
-        when (displayText) {
-            realPin -> {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onUnlock(false) // Real Mode
-            }
-            fakePin -> {
-                if (fakePin.isNotEmpty()) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onUnlock(true) // Fake Mode
-                }
-            }
-            else -> {
-                // Just perform normal calculation if PIN doesn't match
-                handleEquals()
-            }
         }
     }
 
