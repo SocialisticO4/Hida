@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/SocialisticO4/Hida">
-    <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Hida Logo" width="120"/>
+    <img src="app/src/main/res/drawable/lock_6065983.png" alt="Hida Logo" width="120"/>
   </a>
 </p>
 
