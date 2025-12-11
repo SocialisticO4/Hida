@@ -10,8 +10,8 @@ android {
 
     defaultConfig {
         applicationId = "com.example.hida"
-        minSdk = 34
-        targetSdk = 36
+        minSdk = 26  // Android 8.0 - Required for EncryptedSharedPreferences
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

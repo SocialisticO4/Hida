@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Android-14%2B-green?style=flat-square&logo=android" alt="Android 14+"/>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-green?style=flat-square&logo=android" alt="Android 8.0+"/>
   <img src="https://img.shields.io/badge/Kotlin-1.9-purple?style=flat-square&logo=kotlin" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/Jetpack%20Compose-Material%203-blue?style=flat-square" alt="Compose"/>
   <img src="https://img.shields.io/badge/Encryption-ChaCha20--Poly1305-red?style=flat-square" alt="ChaCha20"/>
