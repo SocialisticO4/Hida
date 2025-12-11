@@ -235,52 +235,30 @@ cd Hida
 
 ---
 
-## 📄 License
+## 📄 Third-Party Libraries & Licenses
 
-```
-MIT License
+All third-party dependencies used in this project are licensed under the **Apache License 2.0**:
 
-Copyright (c) 2024 Hida
+| Library | License | Link |
+|---------|---------|------|
+| **Jetpack Compose** | Apache 2.0 | [developer.android.com](https://developer.android.com/jetpack/compose) |
+| **Material 3** | Apache 2.0 | [material.io](https://m3.material.io/) |
+| **Navigation Compose** | Apache 2.0 | [AndroidX Navigation](https://developer.android.com/jetpack/compose/navigation) |
+| **ExoPlayer/Media3** | Apache 2.0 | [github.com/androidx/media](https://github.com/androidx/media) |
+| **Coil** | Apache 2.0 | [github.com/coil-kt/coil](https://github.com/coil-kt/coil) |
+| **Security Crypto** | Apache 2.0 | [AndroidX Security](https://developer.android.com/jetpack/androidx/releases/security) |
+| **AndroidX Core KTX** | Apache 2.0 | [AndroidX](https://developer.android.com/jetpack/androidx) |
+| **Lifecycle Runtime** | Apache 2.0 | [AndroidX Lifecycle](https://developer.android.com/jetpack/androidx/releases/lifecycle) |
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### Apache License 2.0 Summary
+- ✅ Commercial use allowed
+- ✅ Modification allowed
+- ✅ Distribution allowed
+- ✅ Private use allowed
+- ⚠️ Must include license and copyright notice
+- ⚠️ Must state changes made
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-### Third-Party Licenses
-
-All third-party dependencies are licensed under the **Apache License 2.0**:
-
-- [Jetpack Compose](https://developer.android.com/jetpack/compose) - Apache 2.0
-- [ExoPlayer/Media3](https://github.com/androidx/media) - Apache 2.0
-- [Coil](https://github.com/coil-kt/coil) - Apache 2.0
-- [AndroidX Libraries](https://developer.android.com/jetpack/androidx) - Apache 2.0
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Full Apache 2.0 license text: [apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ---
 
@@ -293,3 +271,4 @@ For questions or suggestions, please open an issue on GitHub.
 <p align="center">
   Made with ❤️ for privacy
 </p>
+
