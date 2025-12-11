@@ -1,7 +1,9 @@
 # Hida - Secure Media Vault
 
 <p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Hida Logo" width="120"/>
+  <a href="https://github.com/SocialisticO4/Hida">
+    <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Hida Logo" width="120"/>
+  </a>
 </p>
 
 <p align="center">
@@ -183,39 +185,6 @@ app/src/main/java/com/example/hida/
 - ⚠️ Root access can potentially extract KeyStore keys
 - ⚠️ No protection against screen recording while viewing
 - ⚠️ Decrypted thumbnails cached by Coil (in-memory only)
-
----
-
-## 🚀 Building
-
-### Requirements
-- Android Studio Hedgehog (2023.1.1) or later
-- JDK 11+
-- Android SDK 34+
-
-### Build Steps
-
-```bash
-# Clone repository
-git clone https://github.com/YourUsername/Hida.git
-cd Hida
-
-# Build debug APK
-./gradlew assembleDebug
-
-# Build release APK
-./gradlew assembleRelease
-```
-
-### Run on Device
-
-```bash
-# Install and run
-./gradlew installDebug
-
-# Or use Android Studio
-# Open project → Run → Select device
-```
 
 ---
 
