@@ -12,12 +12,12 @@
         android:maxSdkVersion="32" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/lock_6065983"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/lock_6065983"
         android:supportsRtl="true"
         android:theme="@style/Theme.Hida">
         <activity
@@ -33,6 +33,19 @@
         </activity>
 
         <!-- Icon Aliases for Disguise -->
+        <activity-alias
+            android:name=".CalculatorAlias"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/ic_calculator_launcher"
+            android:label="Calculator"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <activity-alias
             android:name=".WeatherAlias"
             android:enabled="false"
@@ -51,7 +64,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_notes_launcher"
-            android:label="Notes"
+            android:label="Keep Notes"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -77,7 +90,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_music_launcher"
-            android:label="Music"
+            android:label="YT Music"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -103,7 +116,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_mail_launcher"
-            android:label="Mail"
+            android:label="Gmail"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -116,7 +129,7 @@
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/ic_browser_launcher"
-            android:label="Browser"
+            android:label="Chrome"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -190,19 +203,6 @@
         </activity-alias>
 
         <activity-alias
-            android:name=".SettingsAlias"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@drawable/ic_settings_launcher"
-            android:label="Settings"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
             android:name=".PlayStoreAlias"
             android:enabled="false"
             android:exported="true"
@@ -234,19 +234,6 @@
             android:exported="true"
             android:icon="@drawable/ic_files_launcher"
             android:label="Files"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".RadioAlias"
-            android:enabled="false"
-            android:exported="true"
-            android:icon="@drawable/ic_radio_launcher"
-            android:label="Radio"
             android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

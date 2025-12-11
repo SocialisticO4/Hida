@@ -1,169 +1,263 @@
 package com.example.hida.ui
 
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import android.view.HapticFeedbackConstants
+import android.view.View
+import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.automirrored.outlined.Backspace
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.ripple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.data.PreferencesManager
-import com.example.hida.ui.theme.HidaShapes
-import com.example.hida.ui.theme.SquircleShape
-import kotlinx.coroutines.delay
+import com.example.hida.ui.theme.*
 import kotlin.math.abs
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalculatorScreen(
     onUnlock: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val haptic = LocalHapticFeedback.current
+    val prefs = remember { PreferencesManager(context) }
     
-    // State
-    var expression by remember { mutableStateOf("0") }
-    var resultPreview by remember { mutableStateOf("") }
+    var expression by remember { mutableStateOf("") }
+    var previousExpression by remember { mutableStateOf("") }
+    var previousResult by remember { mutableStateOf("") }
     var showMenu by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
+    var isDegMode by remember { mutableStateOf(true) }
+    var isInvMode by remember { mutableStateOf(false) }
     
-    // Blinking cursor
-    var cursorVisible by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(900)
-            cursorVisible = !cursorVisible
+    // Brute force protection
+    var lockoutRemainingMs by remember { mutableStateOf(prefs.getRemainingLockoutTime()) }
+    var showLockoutWarning by remember { mutableStateOf(false) }
+    
+    // Update lockout timer
+    LaunchedEffect(lockoutRemainingMs) {
+        if (lockoutRemainingMs > 0) {
+            kotlinx.coroutines.delay(1000)
+            lockoutRemainingMs = prefs.getRemainingLockoutTime()
         }
     }
 
-    // Calculate preview
-    LaunchedEffect(expression) {
-        resultPreview = try {
-            if (expression.isNotEmpty() && expression != "0" && expression != "Error") {
-                val result = evaluateExpression(expression)
-                val formatted = formatResult(result)
-                if (formatted != expression) formatted else ""
-            } else ""
-        } catch (e: Exception) { "" }
+    fun formatWithCommas(num: String): String {
+        if (num.isEmpty() || num == "-") return num
+        val parts = num.split(".")
+        val intPart = parts[0].replace(",", "")
+        if (intPart.isEmpty()) return num
+        val sb = StringBuilder()
+        var count = 0
+        for (i in intPart.length - 1 downTo 0) {
+            if (intPart[i] == '-') sb.insert(0, '-')
+            else {
+                if (count > 0 && count % 3 == 0) sb.insert(0, ',')
+                sb.insert(0, intPart[i])
+                count++
+            }
+        }
+        return if (parts.size > 1) "$sb.${parts[1]}" else sb.toString()
     }
 
+    fun formatExpr(expr: String): String {
+        if (expr.isEmpty()) return "0"
+        if (expr == "Error") return "Error"
+        val result = StringBuilder()
+        var numBuffer = StringBuilder()
+        for (c in expr) {
+            if (c.isDigit() || c == '.') numBuffer.append(c)
+            else {
+                if (numBuffer.isNotEmpty()) { result.append(formatWithCommas(numBuffer.toString())); numBuffer.clear() }
+                result.append(c)
+            }
+        }
+        if (numBuffer.isNotEmpty()) result.append(formatWithCommas(numBuffer.toString()))
+        return result.toString()
+    }
+
+    val displayText = formatExpr(expression)
+
     fun append(value: String) {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         expression = when {
-            expression == "0" && value != "." -> value
             expression == "Error" -> value
             else -> expression + value
         }
     }
 
-    fun appendOperator(op: String) {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        val lastChar = expression.lastOrNull()
+    fun appendOp(op: String) {
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        val last = expression.lastOrNull()
         expression = when {
-            expression == "0" && op == "-" -> "-"
+            expression.isEmpty() && op == "-" -> "-"
             expression == "Error" -> "0"
-            lastChar != null && lastChar in "+-×÷" -> expression.dropLast(1) + op
+            last in listOf('+', '-', '×', '÷') -> expression.dropLast(1) + op
             else -> expression + op
         }
     }
 
-    fun handleEquals() {
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        
-        val prefs = PreferencesManager(context)
-        when (expression) {
-            prefs.getPin() -> { onUnlock(false); return }
-            prefs.getFakePin() -> if (prefs.getFakePin().isNotEmpty()) { onUnlock(true); return }
-        }
-        
-        try {
-            val result = evaluateExpression(expression)
-            expression = formatResult(result)
-            resultPreview = ""
-        } catch (e: Exception) {
-            expression = "Error"
-        }
-    }
-
     fun clear() {
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        expression = "0"
-        resultPreview = ""
+        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        expression = ""
+        previousExpression = ""
+        previousResult = ""
     }
 
     fun backspace() {
-        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        expression = when {
-            expression.length <= 1 -> "0"
-            expression == "Error" -> "0"
-            else -> expression.dropLast(1)
+        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        expression = if (expression.length <= 1) "" else expression.dropLast(1)
+    }
+
+    fun evalExpr(expr: String): Double {
+        var e = expr.replace(",", "").trim()
+        if (e.isEmpty()) return 0.0
+        val terms = mutableListOf<Pair<Char, Double>>()
+        var op = '+'
+        var num = ""
+        for (c in "$e+") {
+            when {
+                c.isDigit() || c == '.' || (c == '-' && num.isEmpty()) -> num += c
+                c in "+-*/" -> {
+                    if (num.isNotEmpty()) { terms.add(op to (num.toDoubleOrNull() ?: 0.0)); num = "" }
+                    op = c
+                }
+            }
         }
+        var i = 0
+        while (i < terms.size) {
+            val (o, n) = terms[i]
+            if (o == '*' || o == '/') {
+                val prev = terms[i - 1].second
+                terms[i - 1] = terms[i - 1].first to (if (o == '*') prev * n else if (n != 0.0) prev / n else Double.NaN)
+                terms.removeAt(i)
+            } else i++
+        }
+        return terms.fold(0.0) { acc, (o, n) -> if (o == '+') acc + n else acc - n }
+    }
+
+    fun formatResult(v: Double): String {
+        return if (v == v.toLong().toDouble() && abs(v) < 1e12) v.toLong().toString()
+        else String.format("%.8f", v).trimEnd('0').trimEnd('.')
+    }
+
+    fun equals() {
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        
+        // Check if locked out
+        if (prefs.isLockedOut()) {
+            lockoutRemainingMs = prefs.getRemainingLockoutTime()
+            showLockoutWarning = true
+            return
+        }
+        
+        val userPin = prefs.getPin()
+        val fakePin = prefs.getFakePin()
+        
+        when (expression) {
+            userPin -> { 
+                prefs.clearFailedAttempts()
+                prefs.clearSession() // Start fresh session on login
+                onUnlock(false)
+                return 
+            }
+            fakePin -> if (fakePin.isNotEmpty()) { 
+                prefs.clearFailedAttempts()
+                onUnlock(true)
+                return 
+            }
+        }
+        
+        // Check if this looks like a PIN attempt (4-10 digits, no operators)
+        val isPinAttempt = expression.length in 4..10 && 
+                           expression.all { it.isDigit() } &&
+                           userPin != null
+        
+        if (isPinAttempt) {
+            // Wrong PIN - record failed attempt
+            val lockoutDuration = prefs.recordFailedAttempt()
+            if (lockoutDuration > 0) {
+                lockoutRemainingMs = lockoutDuration
+                showLockoutWarning = true
+            }
+        }
+        
+        // Normal calculation
+        try {
+            val expr = expression.replace("×", "*").replace("÷", "/")
+            val result = evalExpr(expr)
+            if (result.isNaN()) expression = "Error"
+            else {
+                previousExpression = expression
+                previousResult = formatWithCommas(formatResult(result))
+                expression = formatResult(result)
+            }
+        } catch (e: Exception) { expression = "Error" }
+    }
+
+    // Button shape changes based on expanded state
+    // Circle when collapsed (1:1), Stadium/Pill when expanded (wider than tall)
+    val buttonShape: Shape = if (expanded) RoundedCornerShape(50) else CircleShape
+
+    // Lockout warning dialog
+    if (showLockoutWarning) {
+        AlertDialog(
+            onDismissRequest = { showLockoutWarning = false },
+            title = { Text("Too Many Attempts") },
+            text = { 
+                val seconds = (lockoutRemainingMs / 1000).toInt()
+                Text("Please wait ${seconds}s before trying again") 
+            },
+            confirmButton = {
+                TextButton(onClick = { showLockoutWarning = false }) {
+                    Text("OK")
+                }
+            }
+        )
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = T5,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {},
-                navigationIcon = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.History,
-                            "History",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
+                navigationIcon = { IconButton(onClick = { }) { Icon(Icons.Outlined.History, "History", tint = OnSurfaceMedium) } },
                 actions = {
                     Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                "Menu",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            shape = HidaShapes.large
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Clear history") },
-                                onClick = { showMenu = false }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Settings") },
-                                onClick = { showMenu = false }
-                            )
+                        IconButton(onClick = { showMenu = true }) { Icon(Icons.Outlined.MoreVert, "Menu", tint = OnSurfaceMedium) }
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, containerColor = T30, shape = RoundedCornerShape(16.dp)) {
+                            DropdownMenuItem(text = { Text("Clear history", color = OnSurfaceHigh) }, onClick = { showMenu = false })
+                            DropdownMenuItem(text = { Text("Choose theme", color = OnSurfaceHigh) }, onClick = { showMenu = false })
+                            DropdownMenuItem(text = { Text("Privacy policy", color = OnSurfaceHigh) }, onClick = { showMenu = false })
+                            DropdownMenuItem(text = { Text("Send feedback", color = OnSurfaceHigh) }, onClick = { showMenu = false })
+                            DropdownMenuItem(text = { Text("Help", color = OnSurfaceHigh) }, onClick = { showMenu = false })
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.Transparent)
             )
         }
     ) { padding ->
@@ -171,288 +265,190 @@ fun CalculatorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.Bottom
+                .padding(horizontal = 8.dp)
         ) {
-            // Display Area
-            Column(
+            // DISPLAY - Takes remaining space, shrinks when expanded
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.Bottom,
-                horizontalAlignment = Alignment.End
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.BottomEnd
             ) {
-                // Expression
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.End,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    if (previousExpression.isNotEmpty()) {
+                        Text(formatExpr(previousExpression), fontSize = 16.sp, color = OnSurfaceMedium, fontFamily = Roboto, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+                        Text(previousResult, fontSize = 20.sp, color = OnSurfaceMedium, fontFamily = Roboto, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
+                    }
                     Text(
-                        text = expression,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontSize = when {
-                                expression.length > 12 -> 44.sp
-                                expression.length > 8 -> 56.sp
-                                else -> 64.sp
-                            },
-                            fontWeight = FontWeight.Normal
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
+                        text = displayText,
+                        fontFamily = Roboto,
+                        fontSize = when { displayText.length > 10 -> 48.sp; displayText.length > 6 -> 64.sp; else -> 72.sp },
+                        fontWeight = FontWeight.SemiBold,
+                        color = OnSurfaceHigh,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.End
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    
-                    if (cursorVisible) {
-                        Box(
-                            modifier = Modifier
-                                .padding(start = 4.dp, bottom = 10.dp)
-                                .width(3.dp)
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(1.5.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-                        )
-                    }
-                }
-                
-                // Result Preview
-                AnimatedVisibility(visible = resultPreview.isNotEmpty()) {
-                    Text(
-                        text = "= $resultPreview",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
-                    )
-                }
-                
-                if (resultPreview.isEmpty()) {
-                    Spacer(modifier = Modifier.height(64.dp))
                 }
             }
 
-            // Keypad Grid
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            // Toggle Arrow - Points down when collapsed, up when expanded
+            Box(modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp, bottom = 4.dp), contentAlignment = Alignment.CenterStart) {
+                IconButton(onClick = { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = "Toggle Scientific",
+                        tint = OnSurfaceMedium
+                    )
+                }
+            }
+
+            // Scientific Panel - Slides down from top, fades in
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
             ) {
-                // Row 1
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CalculatorButton(
-                        text = "AC",
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        onClick = { clear() },
-                        modifier = Modifier.weight(1f)
-                    )
-                    CalculatorButton(
-                        text = "( )",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { append("()") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    CalculatorButton(
-                        text = "%",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { append("%") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    CalculatorButton(
-                        text = "÷",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { appendOperator("÷") },
-                        modifier = Modifier.weight(1f)
-                    )
+                Column(modifier = Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PillBtn("√", { append("√(") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("π", { append("3.14159") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("^", { append("^") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("!", { append("!") }, Modifier.weight(1f).height(44.dp))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PillBtn(if (isDegMode) "Deg" else "Rad", { isDegMode = !isDegMode }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("sin", { append("sin(") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("cos", { append("cos(") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("tan", { append("tan(") }, Modifier.weight(1f).height(44.dp))
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PillBtn("Inv", { isInvMode = !isInvMode }, Modifier.weight(1f).height(44.dp), if (isInvMode) Primary50 else T30)
+                        PillBtn("e", { append("2.718") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("ln", { append("ln(") }, Modifier.weight(1f).height(44.dp))
+                        PillBtn("log", { append("log(") }, Modifier.weight(1f).height(44.dp))
+                    }
+                    Spacer(Modifier.height(4.dp))
                 }
+            }
 
-                // Row 2
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CalculatorButton("7", onClick = { append("7") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("8", onClick = { append("8") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("9", onClick = { append("9") }, modifier = Modifier.weight(1f))
-                    CalculatorButton(
-                        text = "×",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { appendOperator("×") },
-                        modifier = Modifier.weight(1f)
-                    )
+            // Main Keypad - Anchored at bottom, shape transforms based on expanded state
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // When expanded: buttons are pills (wider than tall) 
+                // When collapsed: buttons are circles (1:1 ratio)
+                val buttonHeight = if (expanded) 52.dp else null // Fixed height when expanded, aspectRatio when collapsed
+                
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CalcBtn("AC", Primary50, Color.White, { clear() }, Modifier.weight(1f), buttonShape, buttonHeight, true)
+                    CalcBtn("( )", T30, OnSurfaceHigh, { val o = expression.count { it == '(' }; val c = expression.count { it == ')' }; append(if (o > c) ")" else "(") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
+                    CalcBtn("%", T30, OnSurfaceHigh, { append("%") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
+                    CalcBtn("÷", T30, OnSurfaceHigh, { appendOp("÷") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
                 }
-
-                // Row 3
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CalculatorButton("4", onClick = { append("4") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("5", onClick = { append("5") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("6", onClick = { append("6") }, modifier = Modifier.weight(1f))
-                    CalculatorButton(
-                        text = "−",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { appendOperator("-") },
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CalcBtn("7", T25, OnSurfaceHigh, { append("7") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("8", T25, OnSurfaceHigh, { append("8") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("9", T25, OnSurfaceHigh, { append("9") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("×", T30, OnSurfaceHigh, { appendOp("×") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
                 }
-
-                // Row 4
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CalculatorButton("1", onClick = { append("1") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("2", onClick = { append("2") }, modifier = Modifier.weight(1f))
-                    CalculatorButton("3", onClick = { append("3") }, modifier = Modifier.weight(1f))
-                    CalculatorButton(
-                        text = "+",
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        onClick = { appendOperator("+") },
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CalcBtn("4", T25, OnSurfaceHigh, { append("4") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("5", T25, OnSurfaceHigh, { append("5") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("6", T25, OnSurfaceHigh, { append("6") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("−", T30, OnSurfaceHigh, { appendOp("-") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
                 }
-
-                // Row 5
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    CalculatorButton("0", onClick = { append("0") }, modifier = Modifier.weight(1f))
-                    CalculatorButton(".", onClick = { append(".") }, modifier = Modifier.weight(1f))
-                    CalculatorButton(
-                        icon = Icons.AutoMirrored.Filled.Backspace,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        onClick = { backspace() },
-                        modifier = Modifier.weight(1f)
-                    )
-                    CalculatorButton(
-                        text = "=",
-                        color = MaterialTheme.colorScheme.tertiary,
-                        contentColor = MaterialTheme.colorScheme.onTertiary,
-                        onClick = { handleEquals() },
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CalcBtn("1", T25, OnSurfaceHigh, { append("1") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("2", T25, OnSurfaceHigh, { append("2") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("3", T25, OnSurfaceHigh, { append("3") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn("+", T30, OnSurfaceHigh, { appendOp("+") }, Modifier.weight(1f), buttonShape, buttonHeight, true)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CalcBtn("0", T25, OnSurfaceHigh, { append("0") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    CalcBtn(".", T25, OnSurfaceHigh, { append(".") }, Modifier.weight(1f), buttonShape, buttonHeight, false)
+                    // Backspace button
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .then(if (buttonHeight != null) Modifier.height(buttonHeight) else Modifier.aspectRatio(1f))
+                            .clip(buttonShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = ripple(),
+                                onClick = { backspace() }
+                            ),
+                        shape = buttonShape, color = T25
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(Icons.AutoMirrored.Outlined.Backspace, null, tint = OnSurfaceMedium, modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    CalcBtn("=", Tertiary80, Color.Black, { equals() }, Modifier.weight(1f), buttonShape, buttonHeight, true)
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+// Scientific button - Always pill/stadium shape
 @Composable
-fun CalculatorButton(
-    text: String? = null,
-    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
-    color: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
-    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+private fun PillBtn(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, bgColor: Color = T30) {
+    Surface(
+        modifier = modifier.clip(RoundedCornerShape(50)).clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = ripple(),
+            onClick = onClick
+        ),
+        shape = RoundedCornerShape(50), color = bgColor
+    ) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text, color = OnSurfaceHigh, fontFamily = Roboto, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+// Main keypad button - Shape changes based on expanded state
+@Composable
+private fun CalcBtn(
+    text: String,
+    bgColor: Color,
+    textColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    shape: Shape = SquircleShape // Using Squircle for Expressive feel
+    shape: Shape = CircleShape,
+    fixedHeight: androidx.compose.ui.unit.Dp? = null,
+    isOperator: Boolean = false
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = spring(dampingRatio = 0.5f, stiffness = 400f),
-        label = "scale"
-    )
-
     Surface(
         modifier = modifier
-            .aspectRatio(1f)
-            .scale(scale)
+            .then(if (fixedHeight != null) Modifier.height(fixedHeight) else Modifier.aspectRatio(1f))
             .clip(shape)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = ripple(),
                 onClick = onClick
             ),
-        color = color,
-        contentColor = contentColor,
-        shape = shape
+        shape = shape, color = bgColor
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            if (text != null) {
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = if (text in listOf("AC", "=")) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                )
-            } else if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = text, 
+                color = textColor,
+                fontFamily = Roboto,
+                fontSize = when { 
+                    text.length > 2 -> 20.sp
+                    text in listOf("÷", "×", "−", "+", "=") -> 28.sp
+                    else -> 26.sp 
+                },
+                fontWeight = FontWeight.SemiBold
+            )
         }
-    }
-}
-
-// Expression evaluator logic...
-private fun evaluateExpression(expr: String): Double {
-    val cleaned = expr
-        .replace("×", "*")
-        .replace("÷", "/")
-        .replace("−", "-")
-        .replace("()", "")
-        .replace("%", "/100")
-    
-    return evalSimple(cleaned)
-}
-
-private fun evalSimple(expr: String): Double {
-    var expression = expr.trim()
-    if (expression.isEmpty()) return 0.0
-    
-    var result = 0.0
-    var currentOp = '+'
-    var currentNum = ""
-    var terms = mutableListOf<Pair<Char, Double>>()
-    
-    for (char in "$expression+") {
-        when {
-            char.isDigit() || char == '.' || (char == '-' && currentNum.isEmpty()) -> {
-                currentNum += char
-            }
-            char in "+-*/" -> {
-                if (currentNum.isNotEmpty()) {
-                    terms.add(Pair(currentOp, currentNum.toDoubleOrNull() ?: 0.0))
-                    currentNum = ""
-                }
-                currentOp = char
-            }
-        }
-    }
-    
-    // Multiplication and division
-    var i = 0
-    while (i < terms.size) {
-        val (op, num) = terms[i]
-        if (op == '*' || op == '/') {
-            val prev = terms[i - 1].second
-            val newVal = if (op == '*') prev * num else if (num != 0.0) prev / num else Double.NaN
-            terms[i - 1] = Pair(terms[i - 1].first, newVal)
-            terms.removeAt(i)
-        } else {
-            i++
-        }
-    }
-    
-    // Addition and subtraction
-    for ((op, num) in terms) {
-        result = when (op) {
-            '+' -> result + num
-            '-' -> result - num
-            else -> result
-        }
-    }
-    
-    return result
-}
-
-private fun formatResult(value: Double): String {
-    return if (value == value.toLong().toDouble() && abs(value) < 1e15) {
-        value.toLong().toString()
-    } else {
-        String.format("%.10f", value).trimEnd('0').trimEnd('.')
     }
 }

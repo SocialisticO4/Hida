@@ -10,7 +10,8 @@ import androidx.core.view.WindowCompat
 
 /**
  * Material Design 3 Dark Color Scheme
- * Generated from seed: #5D0E1D (Deep Black Cherry Red)
+ * Seed: #5D0E1D (Deep Burgundy)
+ * Background: #050505 | Surface: #000000
  */
 private val MD3DarkColorScheme = darkColorScheme(
     // Primary

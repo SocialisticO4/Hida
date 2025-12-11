@@ -6,7 +6,8 @@ import coil.decode.DataSource
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import com.example.hida.data.MediaRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okio.buffer
 import okio.source
 import java.io.File
@@ -18,7 +19,15 @@ class EncryptedMediaFetcher(
 ) : Fetcher {
 
     override suspend fun fetch(): SourceResult {
-        val inputStream = repository.getDecryptedStream(file)
+        // For motion photos, return only the image portion
+        val inputStream = if (repository.isMotionPhoto(file)) {
+            withContext(Dispatchers.IO) {
+                repository.getMotionPhotoImageStream(file)
+            } ?: repository.getDecryptedStream(file)
+        } else {
+            repository.getDecryptedStream(file)
+        }
+        
         val bufferedSource = inputStream.source().buffer()
         
         return SourceResult(

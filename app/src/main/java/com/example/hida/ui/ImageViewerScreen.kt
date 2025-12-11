@@ -1,5 +1,8 @@
 package com.example.hida.ui
 
+import android.net.Uri
+
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -7,13 +10,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -21,12 +27,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import com.example.hida.data.MediaRepository
 import com.example.hida.ui.theme.*
+import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(UnstableApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ImageViewerScreen(
     filePath: String,
@@ -34,19 +46,30 @@ fun ImageViewerScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
     val repository = remember { MediaRepository(context) }
-    val file = File(filePath)
-    var showDeleteDialog by remember { mutableStateOf(false) }
+    val file = remember { File(filePath) }
     
-    // Zoom and pan state
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showControls by remember { mutableStateOf(true) }
+    
+    // Zoom state
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
     
-    // UI visibility
-    var showControls by remember { mutableStateOf(true) }
-
-    // Custom ImageLoader for Encrypted Files
+    // Motion photo
+    val isMotionPhoto = remember { repository.isMotionPhoto(file) }
+    var playingVideo by remember { mutableStateOf(false) }
+    var videoFile by remember { mutableStateOf<File?>(null) }
+    var loading by remember { mutableStateOf(false) }
+    
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            repeatMode = ExoPlayer.REPEAT_MODE_ALL
+        }
+    }
+    
     val imageLoader = remember {
         coil.ImageLoader.Builder(context)
             .components {
@@ -54,15 +77,45 @@ fun ImageViewerScreen(
             }
             .build()
     }
+    
+    // Handle video playback
+    LaunchedEffect(playingVideo) {
+        if (playingVideo && isMotionPhoto) {
+            if (videoFile == null) {
+                loading = true
+                videoFile = repository.getMotionPhotoVideoTempFile(file)
+                loading = false
+            }
+            videoFile?.let {
+                exoPlayer.setMediaItem(MediaItem.fromUri(Uri.fromFile(it)))
+                exoPlayer.prepare()
+                exoPlayer.playWhenReady = true
+            }
+        } else {
+            exoPlayer.pause()
+        }
+    }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+            videoFile?.delete()
+        }
+    }
 
-    HidaTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim)
-                .systemBarsPadding()
-        ) {
-            // Image with zoom and pan
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .systemBarsPadding()
+    ) {
+        // Content
+        if (playingVideo && videoFile != null) {
+            AndroidView(
+                factory = { PlayerView(it).apply { player = exoPlayer; useController = false } },
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -71,9 +124,7 @@ fun ImageViewerScreen(
                             onTap = { showControls = !showControls },
                             onDoubleTap = {
                                 if (scale > 1f) {
-                                    scale = 1f
-                                    offsetX = 0f
-                                    offsetY = 0f
+                                    scale = 1f; offsetX = 0f; offsetY = 0f
                                 } else {
                                     scale = 2.5f
                                 }
@@ -84,11 +135,9 @@ fun ImageViewerScreen(
                         detectTransformGestures { _, pan, zoom, _ ->
                             scale = (scale * zoom).coerceIn(1f, 5f)
                             if (scale > 1f) {
-                                offsetX += pan.x
-                                offsetY += pan.y
+                                offsetX += pan.x; offsetY += pan.y
                             } else {
-                                offsetX = 0f
-                                offsetY = 0f
+                                offsetX = 0f; offsetY = 0f
                             }
                         }
                     },
@@ -101,134 +150,106 @@ fun ImageViewerScreen(
                         .diskCachePolicy(coil.request.CachePolicy.DISABLED)
                         .build(),
                     imageLoader = imageLoader,
-                    contentDescription = "Full Screen Image",
+                    contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            translationX = offsetX,
-                            translationY = offsetY
+                            scaleX = scale, scaleY = scale,
+                            translationX = offsetX, translationY = offsetY
                         ),
                     contentScale = ContentScale.Fit
                 )
             }
+        }
+        
+        // Loading indicator
+        if (loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = md3_dark_primary
+            )
+        }
 
-            // Top controls
-            if (showControls) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
-                                    androidx.compose.ui.graphics.Color.Transparent
-                                )
-                            )
+        // Top bar
+        if (showControls) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)
                         )
-                        .padding(horizontal = 8.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FilledIconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onBack()
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = md3_dark_surfaceContainer.copy(alpha = 0.8f)
-                        )
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    )
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onBack() }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
+                }
+                
+                Row {
+                    IconButton(onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        scope.launch {
+                            val ok = repository.exportMedia(file)
+                            if (ok) onBack()
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Export", tint = Color.White)
                     }
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilledIconButton(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                scope.launch {
-                                    val success = repository.exportMedia(file)
-                                    if (success) {
-                                        Toast.makeText(context, "Moved to Gallery", Toast.LENGTH_SHORT).show()
-                                        onBack()
-                                    } else {
-                                        Toast.makeText(context, "Export failed", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = md3_dark_surfaceContainer.copy(alpha = 0.8f)
-                            )
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Move to Gallery",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        
-                        FilledIconButton(
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                showDeleteDialog = true
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "Delete",
-                                tint = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Default.Delete, "Delete", tint = Color.White)
                     }
                 }
             }
+        }
 
-            // Delete confirmation dialog
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    containerColor = md3_dark_surfaceContainerHigh,
-                    shape = HidaShapes.extraLarge,
-                    title = {
-                        Text(
-                            "Delete permanently?",
-                            style = MaterialTheme.typography.headlineSmall
-                        )
-                    },
-                    text = {
-                        Text(
-                            "This item will be permanently deleted from your vault.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                repository.deleteMedia(file)
-                                showDeleteDialog = false
-                                onBack()
-                            }
-                        ) {
-                            Text("Delete", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteDialog = false }) {
-                            Text("Cancel")
-                        }
-                    }
+        // Motion photo toggle
+        if (isMotionPhoto && showControls) {
+            FloatingActionButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    playingVideo = !playingVideo
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp),
+                containerColor = md3_dark_primaryContainer,
+                shape = CircleShape
+            ) {
+                Icon(
+                    if (playingVideo) Icons.Default.Image else Icons.Default.PlayArrow,
+                    contentDescription = if (playingVideo) "Show Image" else "Play Video",
+                    tint = md3_dark_onPrimaryContainer
                 )
             }
+        }
+
+        // Delete dialog
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                containerColor = T30,
+                title = { Text("Delete?", color = OnSurfaceHigh) },
+                text = { Text("This will permanently delete the item.", color = OnSurfaceMedium) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        scope.launch {
+                            repository.deleteMedia(file)
+                            showDeleteDialog = false
+                            onBack()
+                        }
+                    }) {
+                        Text("Delete", color = md3_dark_error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel", color = OnSurfaceHigh)
+                    }
+                }
+            )
         }
     }
 }
