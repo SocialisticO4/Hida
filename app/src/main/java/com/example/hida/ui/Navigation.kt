@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +26,13 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 sealed class Screen(val route: String) {
+    companion object {
+        private fun encodePath(path: String): String =
+            URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
+        fun decodePath(encoded: String): String =
+            URLDecoder.decode(encoded, StandardCharsets.UTF_8.toString())
+    }
+
     object Welcome : Screen("welcome_screen")
     object Calculator : Screen("calculator_screen")
     object Gallery : Screen("gallery_screen/{mode}") {
@@ -32,16 +40,10 @@ sealed class Screen(val route: String) {
     }
     object Settings : Screen("settings_screen")
     object VideoPlayer : Screen("video_player/{filePath}") {
-        fun createRoute(filePath: String): String {
-            val encoded = URLEncoder.encode(filePath, StandardCharsets.UTF_8.toString())
-            return "video_player/$encoded"
-        }
+        fun createRoute(filePath: String) = "video_player/${encodePath(filePath)}"
     }
     object ImageViewer : Screen("image_viewer/{filePath}") {
-        fun createRoute(filePath: String): String {
-            val encoded = URLEncoder.encode(filePath, StandardCharsets.UTF_8.toString())
-            return "image_viewer/$encoded"
-        }
+        fun createRoute(filePath: String) = "image_viewer/${encodePath(filePath)}"
     }
 }
 
@@ -92,6 +94,10 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
 
     // Wrap in HidaTheme with dark background to prevent white flash
     HidaTheme {
+        CompositionLocalProvider(
+            LocalMediaRepository provides repository,
+            LocalPreferencesManager provides prefs
+        ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,9 +159,8 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("filePath")
             if (encodedPath != null) {
-                val filePath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
                 VideoPlayerScreen(
-                    filePath = filePath,
+                    filePath = Screen.decodePath(encodedPath),
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -166,9 +171,8 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("filePath")
             if (encodedPath != null) {
-                val filePath = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
                 ImageViewerScreen(
-                    filePath = filePath,
+                    filePath = Screen.decodePath(encodedPath),
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -179,6 +183,7 @@ fun NavigationGraph(navController: NavHostController = rememberNavController()) 
             )
         }
             }
+        }
         }
     }
 }

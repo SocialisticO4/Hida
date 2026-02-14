@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.hida.data.PreferencesManager
 import com.example.hida.ui.theme.*
@@ -45,7 +46,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val prefs = remember { PreferencesManager(context) }
+    val prefs = LocalPreferencesManager.current
     var showPinDialog by remember { mutableStateOf(false) }
     var showFakePinDialog by remember { mutableStateOf(false) }
     var currentIcon by remember { mutableStateOf(prefs.getIconAlias()) }
@@ -57,7 +58,7 @@ fun SettingsScreen(
                 LargeTopAppBar(
                     title = {
                         Text(
-                            text = "Settings",
+                            text = stringResource(R.string.settings_title),
                             style = MaterialTheme.typography.displaySmall
                         )
                     },
@@ -77,7 +78,7 @@ fun SettingsScreen(
                     },
                     colors = TopAppBarDefaults.largeTopAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
-                        scrolledContainerColor = md3_dark_surfaceContainer
+                        scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
                 )
             }
@@ -92,7 +93,7 @@ fun SettingsScreen(
                 // Security Section
                 item {
                     Text(
-                        "Security",
+                        stringResource(R.string.settings_security),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
@@ -101,8 +102,8 @@ fun SettingsScreen(
                 
                 item {
                     MD3SettingsCard(
-                        title = "Access PIN",
-                        subtitle = "Change your vault access code",
+                        title = stringResource(R.string.settings_access_pin),
+                        subtitle = stringResource(R.string.settings_access_pin_desc),
                         icon = Icons.Default.Lock,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -113,8 +114,8 @@ fun SettingsScreen(
                 
                 item {
                     MD3SettingsCard(
-                        title = "Decoy PIN",
-                        subtitle = "Set a fake PIN that shows empty vault",
+                        title = stringResource(R.string.settings_decoy_pin),
+                        subtitle = stringResource(R.string.settings_decoy_pin_desc),
                         icon = Icons.Default.VisibilityOff,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -133,7 +134,7 @@ fun SettingsScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = HidaShapes.large,
-                        colors = CardDefaults.cardColors(containerColor = md3_dark_surfaceContainerHigh)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
                     ) {
                         Row(
                             modifier = Modifier
@@ -160,12 +161,12 @@ fun SettingsScreen(
                             
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Auto-Lock",
+                                    text = stringResource(R.string.settings_autolock),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Lock vault when app is in background",
+                                    text = stringResource(R.string.settings_autolock_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -184,7 +185,7 @@ fun SettingsScreen(
                                 DropdownMenu(
                                     expanded = expanded,
                                     onDismissRequest = { expanded = false },
-                                    containerColor = md3_dark_surfaceContainerHigh
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                                 ) {
                                     timeoutOptions.forEach { option ->
                                         DropdownMenuItem(
@@ -214,7 +215,7 @@ fun SettingsScreen(
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        "Appearance",
+                        stringResource(R.string.settings_appearance),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 4.dp)
@@ -223,7 +224,7 @@ fun SettingsScreen(
 
                 item {
                     Text(
-                        "App Icon",
+                        stringResource(R.string.settings_app_icon),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
@@ -285,7 +286,7 @@ fun SettingsScreen(
         // PIN Dialog
         if (showPinDialog) {
             MD3PinDialog(
-                title = "Change Access PIN",
+                title = stringResource(R.string.settings_change_pin),
                 currentPin = prefs.getPin() ?: "",
                 onDismiss = { showPinDialog = false },
                 onConfirm = { newPin ->
@@ -299,7 +300,7 @@ fun SettingsScreen(
         // Fake PIN Dialog
         if (showFakePinDialog) {
             MD3PinDialog(
-                title = "Set Decoy PIN",
+                title = stringResource(R.string.settings_set_decoy_pin),
                 currentPin = prefs.getFakePin(),
                 onDismiss = { showFakePinDialog = false },
                 onConfirm = { newPin ->
@@ -342,7 +343,7 @@ fun MD3SettingsCard(
             ),
         shape = HidaShapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = md3_dark_surfaceContainerHigh
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
     ) {
         Row(
@@ -422,7 +423,7 @@ fun MD3IconSelector(
         Surface(
             modifier = Modifier.size(56.dp),
             shape = HidaShapes.medium,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else md3_dark_surfaceContainerHigh,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = if (isSelected) 6.dp else 0.dp
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -461,10 +462,11 @@ fun MD3PinDialog(
     var pin by remember { mutableStateOf("") }  // Start empty, don't prefill
     var showPin by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    val pinErrorShort = stringResource(R.string.pin_error_short)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = md3_dark_surfaceContainerHigh,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = HidaShapes.extraLarge,
         title = {
             Text(
@@ -482,8 +484,8 @@ fun MD3PinDialog(
                             error = null
                         }
                     },
-                    label = { Text("New PIN") },
-                    placeholder = { Text("Enter 4-10 digits") },
+                    label = { Text(stringResource(R.string.pin_label)) },
+                    placeholder = { Text(stringResource(R.string.pin_placeholder)) },
                     visualTransformation = if (showPin) androidx.compose.ui.text.input.VisualTransformation.None 
                                           else androidx.compose.ui.text.input.PasswordVisualTransformation(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -520,20 +522,20 @@ fun MD3PinDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { 
+                onClick = {
                     if (pin.length < 4) {
-                        error = "PIN must be at least 4 digits"
+                        error = pinErrorShort
                     } else {
-                        onConfirm(pin) 
+                        onConfirm(pin)
                     }
                 }
             ) {
-                Text("Save", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.save), color = MaterialTheme.colorScheme.primary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

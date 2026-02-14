@@ -26,6 +26,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -33,7 +34,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
-import com.example.hida.data.MediaRepository
+import com.example.hida.R
+
 import com.example.hida.ui.theme.*
 import kotlinx.coroutines.launch
 import java.io.File
@@ -47,7 +49,7 @@ fun ImageViewerScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
-    val repository = remember { MediaRepository(context) }
+    val repository = LocalMediaRepository.current
     val file = remember { File(filePath) }
     
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -166,7 +168,7 @@ fun ImageViewerScreen(
         if (loading) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = md3_dark_primary
+                color = MaterialTheme.colorScheme.primary
             )
         }
 
@@ -215,40 +217,30 @@ fun ImageViewerScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 32.dp),
-                containerColor = md3_dark_primaryContainer,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
                 shape = CircleShape
             ) {
                 Icon(
                     if (playingVideo) Icons.Default.Image else Icons.Default.PlayArrow,
                     contentDescription = if (playingVideo) "Show Image" else "Play Video",
-                    tint = md3_dark_onPrimaryContainer
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
 
         // Delete dialog
         if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                containerColor = T30,
-                title = { Text("Delete?", color = OnSurfaceHigh) },
-                text = { Text("This will permanently delete the item.", color = OnSurfaceMedium) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        scope.launch {
-                            repository.deleteMedia(file)
-                            showDeleteDialog = false
-                            onBack()
-                        }
-                    }) {
-                        Text("Delete", color = md3_dark_error)
+            HidaConfirmDialog(
+                title = stringResource(R.string.image_delete_title),
+                text = stringResource(R.string.image_delete_message),
+                onConfirm = {
+                    scope.launch {
+                        repository.deleteMedia(file)
+                        showDeleteDialog = false
+                        onBack()
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel", color = OnSurfaceHigh)
-                    }
-                }
+                onDismiss = { showDeleteDialog = false }
             )
         }
     }

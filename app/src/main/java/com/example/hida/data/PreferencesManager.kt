@@ -22,12 +22,12 @@ class PreferencesManager(private val context: Context) {
     
     fun savePin(pin: String) {
         if (pin.length < 4) return // Enforce minimum length
-        sharedPreferences.edit().putString("APP_PIN", pin).apply()
+        sharedPreferences.edit().putString(KEY_PIN, pin).apply()
     }
 
     fun getPin(): String? {
         // No default PIN - returns null if not set (forces Welcome screen)
-        return sharedPreferences.getString("APP_PIN", null)
+        return sharedPreferences.getString(KEY_PIN, null)
     }
     
     fun hasPin(): Boolean {
@@ -36,21 +36,21 @@ class PreferencesManager(private val context: Context) {
 
     fun saveFakePin(pin: String) {
         if (pin.length < 4 && pin.isNotEmpty()) return // Enforce minimum if not empty
-        sharedPreferences.edit().putString("APP_FAKE_PIN", pin).apply()
+        sharedPreferences.edit().putString(KEY_FAKE_PIN, pin).apply()
     }
 
     fun getFakePin(): String {
-        return sharedPreferences.getString("APP_FAKE_PIN", "") ?: ""
+        return sharedPreferences.getString(KEY_FAKE_PIN, "") ?: ""
     }
 
     // ==================== Icon Alias ====================
     
     fun saveIconAlias(alias: String) {
-        sharedPreferences.edit().putString("APP_ICON_ALIAS", alias).apply()
+        sharedPreferences.edit().putString(KEY_ICON_ALIAS, alias).apply()
     }
 
     fun getIconAlias(): String {
-        return sharedPreferences.getString("APP_ICON_ALIAS", "MainActivity") ?: "MainActivity"
+        return sharedPreferences.getString(KEY_ICON_ALIAS, "MainActivity") ?: "MainActivity"
     }
 
     // ==================== First Launch ====================
@@ -74,10 +74,9 @@ class PreferencesManager(private val context: Context) {
     // ==================== Brute Force Protection ====================
     
     private companion object {
-        const val PREFS_NAME = "hida_prefs"
-        const val KEY_PIN = "user_pin"
-        const val KEY_FAKE_PIN = "app_fake_pin" // Added this constant based on existing usage
-        const val KEY_ICON_ALIAS = "app_icon_alias" // Added this constant based on existing usage
+        const val KEY_PIN = "APP_PIN"
+        const val KEY_FAKE_PIN = "APP_FAKE_PIN"
+        const val KEY_ICON_ALIAS = "APP_ICON_ALIAS"
         const val KEY_IS_FIRST_LAUNCH = "is_first_launch"
         const val KEY_WRAPPED_KEY = "wrapped_encryption_key"
         

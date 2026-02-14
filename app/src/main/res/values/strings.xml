@@ -1,3 +1,67 @@
 <resources>
     <string name="app_name">Hida</string>
+
+    <!-- Common -->
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="ok">OK</string>
+
+    <!-- Lockout -->
+    <string name="lockout_title">Too Many Attempts</string>
+    <string name="lockout_message">Please wait %ds before trying again</string>
+
+    <!-- Gallery -->
+    <string name="gallery_title">Vault</string>
+    <string name="tab_photos">Photos</string>
+    <string name="tab_videos">Videos</string>
+    <string name="tab_audio">Audio</string>
+    <string name="tab_docs">Docs</string>
+    <string name="gallery_empty_fake">Nothing here</string>
+    <string name="gallery_empty_photos">No photos yet</string>
+    <string name="gallery_empty_videos">No videos yet</string>
+    <string name="gallery_add_photos_hint">Tap + to add photos</string>
+    <string name="gallery_add_videos_hint">Tap + to add videos</string>
+    <string name="gallery_import_failed">Import failed</string>
+    <string name="gallery_selection_count">%d selected</string>
+    <string name="gallery_delete_title">Delete %d items?</string>
+    <string name="gallery_delete_message">This will permanently delete the selected items from your vault.</string>
+
+    <!-- Image Viewer -->
+    <string name="image_delete_title">Delete?</string>
+    <string name="image_delete_message">This will permanently delete the item.</string>
+
+    <!-- Video Player -->
+    <string name="video_delete_title">Delete Video?</string>
+    <string name="video_delete_message">This will permanently delete this video from the vault.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_access_pin">Access PIN</string>
+    <string name="settings_access_pin_desc">Change your vault access code</string>
+    <string name="settings_decoy_pin">Decoy PIN</string>
+    <string name="settings_decoy_pin_desc">Set a fake PIN that shows empty vault</string>
+    <string name="settings_autolock">Auto-Lock</string>
+    <string name="settings_autolock_desc">Lock vault when app is in background</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_app_icon">App Icon</string>
+    <string name="settings_change_pin">Change Access PIN</string>
+    <string name="settings_set_decoy_pin">Set Decoy PIN</string>
+
+    <!-- PIN Dialog -->
+    <string name="pin_label">New PIN</string>
+    <string name="pin_placeholder">Enter 4&#8211;10 digits</string>
+    <string name="pin_error_short">PIN must be at least 4 digits</string>
+    <string name="pin_error_mismatch">PINs don\'t match</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Welcome to Hida</string>
+    <string name="welcome_description">Your private vault for photos and videos.\nSet a PIN to keep your content secure.</string>
+    <string name="welcome_create_pin">Create PIN</string>
+    <string name="welcome_create_pin_hint">Enter 4&#8211;10 digit PIN</string>
+    <string name="welcome_confirm_pin">Confirm PIN</string>
+    <string name="welcome_confirm_pin_hint">Re-enter PIN</string>
+    <string name="welcome_instruction">To unlock later: Enter PIN and press \'=\' button</string>
+    <string name="welcome_get_started">Get Started</string>
 </resources>

@@ -31,6 +31,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,8 +43,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.example.hida.R
 import com.example.hida.data.EncryptedDataSource
-import com.example.hida.data.MediaRepository
 import com.example.hida.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -59,7 +60,7 @@ fun VideoPlayerScreen(
     val haptic = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     
-    val repository = remember { MediaRepository(context) }
+    val repository = LocalMediaRepository.current
     val file = remember { File(filePath) }
     
     // Playback state
@@ -180,7 +181,7 @@ fun VideoPlayerScreen(
         if (isBuffering && !isEnded) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = Primary50
+                color = MaterialTheme.colorScheme.primaryContainer
             )
         }
         
@@ -309,8 +310,8 @@ fun VideoPlayerScreen(
                             exoPlayer.seekTo(currentTime)
                         },
                         colors = SliderDefaults.colors(
-                            thumbColor = Primary50,
-                            activeTrackColor = Primary50,
+                            thumbColor = MaterialTheme.colorScheme.primaryContainer,
+                            activeTrackColor = MaterialTheme.colorScheme.primaryContainer,
                             inactiveTrackColor = Color.White.copy(alpha = 0.2f)
                         ),
                         modifier = Modifier
@@ -341,7 +342,7 @@ fun VideoPlayerScreen(
                             modifier = Modifier
                                 .size(80.dp)
                                 .clip(RoundedCornerShape(28.dp))
-                                .background(Primary50)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable {
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     when {
@@ -387,27 +388,17 @@ fun VideoPlayerScreen(
         
         // Delete Confirmation Dialog
         if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                containerColor = T30,
-                title = { Text("Delete Video?", color = OnSurfaceHigh) },
-                text = { Text("This will permanently delete this video from the vault.", color = OnSurfaceMedium) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        scope.launch {
-                            repository.deleteMedia(file)
-                            showDeleteDialog = false
-                            onBack()
-                        }
-                    }) {
-                        Text("Delete", color = md3_dark_error)
+            HidaConfirmDialog(
+                title = stringResource(R.string.video_delete_title),
+                text = stringResource(R.string.video_delete_message),
+                onConfirm = {
+                    scope.launch {
+                        repository.deleteMedia(file)
+                        showDeleteDialog = false
+                        onBack()
                     }
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel", color = OnSurfaceHigh)
-                    }
-                }
+                onDismiss = { showDeleteDialog = false }
             )
         }
     }

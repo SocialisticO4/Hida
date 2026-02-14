@@ -45,9 +45,10 @@ import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.ContextCompat
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
-import com.example.hida.data.MediaRepository
-import com.example.hida.data.PreferencesManager
+import com.example.hida.R
+
 import com.example.hida.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,8 +72,8 @@ fun GalleryScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val repository = remember { MediaRepository(context) }
-    val prefs = remember { PreferencesManager(context) }
+    val repository = LocalMediaRepository.current
+    val prefs = LocalPreferencesManager.current
     val lifecycleOwner = LocalLifecycleOwner.current
     
     var allMediaFiles by remember { mutableStateOf(emptyList<File>()) }
@@ -196,7 +197,7 @@ fun GalleryScreen(
                         pendingEncryptedFile = null
                     }
                 }.onFailure { e ->
-                    android.widget.Toast.makeText(context, "Import failed", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, context.getString(R.string.gallery_import_failed), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -232,7 +233,7 @@ fun GalleryScreen(
                 if (isSelectionMode) {
                     // Selection Mode Top Bar
                     TopAppBar(
-                        title = { Text("${selectedFiles.size} selected") },
+                        title = { Text(stringResource(R.string.gallery_selection_count, selectedFiles.size)) },
                         navigationIcon = {
                             IconButton(onClick = { exitSelectionMode() }) {
                                 Icon(Icons.Default.Close, "Cancel")
@@ -258,7 +259,7 @@ fun GalleryScreen(
                                 onClick = { showDeleteConfirm = true },
                                 enabled = selectedFiles.isNotEmpty()
                             ) {
-                                Icon(Icons.Default.Delete, "Delete", tint = md3_dark_error)
+                                Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -268,7 +269,7 @@ fun GalleryScreen(
                 } else {
                     // Normal Top Bar
                     CenterAlignedTopAppBar(
-                        title = { Text("Vault", style = MaterialTheme.typography.titleLarge) },
+                        title = { Text(stringResource(R.string.gallery_title), style = MaterialTheme.typography.titleLarge) },
                         actions = {
                             if (!isFakeMode) {
                                 IconButton(onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onSettingsClick() }) {
@@ -288,14 +289,14 @@ fun GalleryScreen(
             bottomBar = {
                 if (!isSelectionMode) {
                     NavigationBar(
-                        containerColor = md3_dark_surfaceContainer,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
                         contentColor = MaterialTheme.colorScheme.onSurface
                     ) {
                         NavigationBarItem(
                             selected = selectedTab == 0,
                             onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedTab = 0 },
                             icon = { Icon(if (selectedTab == 0) Icons.Filled.Image else Icons.Outlined.Image, "Photos") },
-                            label = { Text("Photos") },
+                            label = { Text(stringResource(R.string.tab_photos)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -308,7 +309,7 @@ fun GalleryScreen(
                             selected = selectedTab == 1,
                             onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedTab = 1 },
                             icon = { Icon(if (selectedTab == 1) Icons.Filled.Movie else Icons.Outlined.Movie, "Videos") },
-                            label = { Text("Videos") },
+                            label = { Text(stringResource(R.string.tab_videos)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -321,7 +322,7 @@ fun GalleryScreen(
                             selected = selectedTab == 2,
                             onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedTab = 2 },
                             icon = { Icon(if (selectedTab == 2) Icons.Filled.MusicNote else Icons.Default.MusicNote, "Audio") },
-                            label = { Text("Audio") },
+                            label = { Text(stringResource(R.string.tab_audio)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -334,7 +335,7 @@ fun GalleryScreen(
                             selected = selectedTab == 3,
                             onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); selectedTab = 3 },
                             icon = { Icon(if (selectedTab == 3) Icons.Filled.Description else Icons.Default.Description, "Documents") },
-                            label = { Text("Docs") },
+                            label = { Text(stringResource(R.string.tab_docs)) },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.onPrimary,
                                 selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -385,14 +386,14 @@ fun GalleryScreen(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Text(
-                            text = if (isFakeMode) "Nothing here" else if (selectedTab == 0) "No photos yet" else "No videos yet",
+                            text = if (isFakeMode) stringResource(R.string.gallery_empty_fake) else if (selectedTab == 0) stringResource(R.string.gallery_empty_photos) else stringResource(R.string.gallery_empty_videos),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (!isFakeMode) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Tap + to add ${if (selectedTab == 0) "photos" else "videos"}",
+                                text = if (selectedTab == 0) stringResource(R.string.gallery_add_photos_hint) else stringResource(R.string.gallery_add_videos_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -490,24 +491,14 @@ fun GalleryScreen(
         
         // Delete Confirmation Dialog
         if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
-                containerColor = T30,
-                title = { Text("Delete ${selectedFiles.size} items?", color = OnSurfaceHigh) },
-                text = { Text("This will permanently delete the selected items from your vault.", color = OnSurfaceMedium) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showDeleteConfirm = false
-                        deleteSelected()
-                    }) {
-                        Text("Delete", color = md3_dark_error)
-                    }
+            HidaConfirmDialog(
+                title = stringResource(R.string.gallery_delete_title, selectedFiles.size),
+                text = stringResource(R.string.gallery_delete_message),
+                onConfirm = {
+                    showDeleteConfirm = false
+                    deleteSelected()
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) {
-                        Text("Cancel", color = OnSurfaceHigh)
-                    }
-                }
+                onDismiss = { showDeleteConfirm = false }
             )
         }
     }
@@ -537,7 +528,7 @@ fun MediaGridItem(
             .aspectRatio(1f)
             .scale(scale)
             .clip(RoundedCornerShape(8.dp))
-            .background(md3_dark_surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
@@ -560,7 +551,7 @@ fun MediaGridItem(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, md3_dark_scrim.copy(alpha = 0.4f)))),
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)))),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

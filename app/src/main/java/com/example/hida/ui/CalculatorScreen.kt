@@ -29,9 +29,10 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.hida.data.PreferencesManager
+import com.example.hida.R
 import com.example.hida.ui.theme.*
 import kotlin.math.abs
 
@@ -43,7 +44,7 @@ fun CalculatorScreen(
     val context = LocalContext.current
     val view = LocalView.current
     val haptic = LocalHapticFeedback.current
-    val prefs = remember { PreferencesManager(context) }
+    val prefs = LocalPreferencesManager.current
     
     var expression by remember { mutableStateOf("") }
     var previousExpression by remember { mutableStateOf("") }
@@ -226,14 +227,14 @@ fun CalculatorScreen(
     if (showLockoutWarning) {
         AlertDialog(
             onDismissRequest = { showLockoutWarning = false },
-            title = { Text("Too Many Attempts") },
-            text = { 
+            title = { Text(stringResource(R.string.lockout_title)) },
+            text = {
                 val seconds = (lockoutRemainingMs / 1000).toInt()
-                Text("Please wait ${seconds}s before trying again") 
+                Text(stringResource(R.string.lockout_message, seconds))
             },
             confirmButton = {
                 TextButton(onClick = { showLockoutWarning = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             }
         )

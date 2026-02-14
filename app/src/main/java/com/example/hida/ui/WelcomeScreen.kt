@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -28,7 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.hida.R
-import com.example.hida.data.PreferencesManager
+
 import com.example.hida.ui.theme.*
 
 @Composable
@@ -37,8 +38,11 @@ fun WelcomeScreen(
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
-    val prefs = remember { PreferencesManager(context) }
+    val prefs = LocalPreferencesManager.current
     
+    val pinErrorShort = stringResource(R.string.pin_error_short)
+    val pinErrorMismatch = stringResource(R.string.pin_error_mismatch)
+
     var pin by remember { mutableStateOf("") }
     var confirmPin by remember { mutableStateOf("") }
     var showPin by remember { mutableStateOf(false) }
@@ -97,7 +101,7 @@ fun WelcomeScreen(
                 
                 // Welcome Title
                 Text(
-                    text = "Welcome to Hida",
+                    text = stringResource(R.string.welcome_title),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -108,7 +112,7 @@ fun WelcomeScreen(
                 
                 // Description
                 Text(
-                    text = "Your private vault for photos and videos.\nSet a PIN to keep your content secure.",
+                    text = stringResource(R.string.welcome_description),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -126,8 +130,8 @@ fun WelcomeScreen(
                             error = null
                         }
                     },
-                    label = { Text("Create PIN") },
-                    placeholder = { Text("Enter 4-10 digit PIN") },
+                    label = { Text(stringResource(R.string.welcome_create_pin)) },
+                    placeholder = { Text(stringResource(R.string.welcome_create_pin_hint)) },
                     visualTransformation = if (showPin) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     trailingIcon = {
@@ -159,8 +163,8 @@ fun WelcomeScreen(
                             error = null
                         }
                     },
-                    label = { Text("Confirm PIN") },
-                    placeholder = { Text("Re-enter PIN") },
+                    label = { Text(stringResource(R.string.welcome_confirm_pin)) },
+                    placeholder = { Text(stringResource(R.string.welcome_confirm_pin_hint)) },
                     visualTransformation = if (showPin) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -204,7 +208,7 @@ fun WelcomeScreen(
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "To unlock later: Enter PIN and press '=' button",
+                            text = stringResource(R.string.welcome_instruction),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
@@ -218,8 +222,8 @@ fun WelcomeScreen(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            pin.length < 4 -> error = "PIN must be at least 4 digits"
-                            pin != confirmPin -> error = "PINs don't match"
+                            pin.length < 4 -> error = pinErrorShort
+                            pin != confirmPin -> error = pinErrorMismatch
                             else -> {
                                 prefs.savePin(pin)
                                 prefs.setFirstLaunchComplete()
@@ -238,7 +242,7 @@ fun WelcomeScreen(
                     enabled = pin.isNotEmpty() && confirmPin.isNotEmpty()
                 ) {
                     Text(
-                        text = "Get Started",
+                        text = stringResource(R.string.welcome_get_started),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )

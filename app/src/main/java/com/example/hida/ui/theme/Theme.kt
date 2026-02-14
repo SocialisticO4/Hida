@@ -57,9 +57,16 @@ private val MD3DarkColorScheme = darkColorScheme(
     
     // Scrim
     scrim = md3_dark_scrim,
-    
+
     // Surface tint
-    surfaceTint = md3_dark_surfaceTint
+    surfaceTint = md3_dark_surfaceTint,
+
+    // Surface containers
+    surfaceContainerLowest = md3_dark_surfaceContainerLowest,
+    surfaceContainerLow = md3_dark_surfaceContainerLow,
+    surfaceContainer = md3_dark_surfaceContainer,
+    surfaceContainerHigh = md3_dark_surfaceContainerHigh,
+    surfaceContainerHighest = md3_dark_surfaceContainerHighest
 )
 
 @Composable
