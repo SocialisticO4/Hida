@@ -10,6 +10,7 @@ I will be also publishing the same app on Play Store, F-Droid, and other platfor
 As you know, there is no need for present security to be as secure as possible. I have ensured it in such a way that it is not capable of being cracked by bureaus or agencies, seems to me and the features I have been put through a lot of effort, and these are tested with a lot of problems and thoughts in my mind. A lot of time and energy has been taken to specifically design this thing in the way that no other app exists in the market.
 
 In this strength, I feel the demand for applications is increasing, but the pace of making those applications is falling down. So yea, there is a care for privacy...
+
 ---
 Hida is an Android-only media vault that hides photos, videos, audio, and documents behind a fully-functional calculator. Type the correct PIN, press `=`, and the vault opens. Type a different PIN and a harmless decoy vault opens instead. All encryption happens on-device in Kotlin — keys never cross the JS bridge, and no data ever leaves your phone.
 
