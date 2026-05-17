@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Generic bank building silhouette -->
+    <path
+        android:pathData="M54,22 L86,42 L86,46 L22,46 L22,42 Z"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M30,46 L30,76 M42,46 L42,76 M54,46 L54,76 M66,46 L66,76 M78,46 L78,76"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M22,76 L86,76"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

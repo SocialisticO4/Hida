@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Generic gear -->
+    <path
+        android:pathData="M54,28 L58,36 L66,34 L70,42 L64,48 L64,60 L70,66 L66,74 L58,72 L54,80 L50,72 L42,74 L38,66 L44,60 L44,48 L38,42 L42,34 L50,36 Z"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M54,44 A10,10 0 1,1 54.01,44"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+</vector>

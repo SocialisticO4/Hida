@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Generic newspaper -->
+    <path
+        android:pathData="M28,30 L68,30 Q72,30 72,34 L72,76 Q72,80 68,80 L28,80 Q24,80 24,76 L24,34 Q24,30 28,30 Z"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M76,34 L82,34 Q84,34 84,36 L84,76 Q84,78 82,78 L76,78"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M34,42 L62,42 M34,52 L58,52 M34,62 L54,62"
+        android:strokeColor="#16140F"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

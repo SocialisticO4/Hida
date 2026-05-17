@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy Auto Backup rules (Android 5.0+ / pre-12). Belt-and-braces alongside
+  android:allowBackup="false" — if a future build flips that flag back on, this
+  prevents the encrypted vault, the wrapped key + salt in EncryptedSharedPreferences,
+  and any plaintext temp files in cacheDir from being uploaded to the user's
+  Google Drive backup or pulled by `adb backup`.
+-->
+<full-backup-content>
+  <exclude domain="sharedpref" path="secure_prefs.xml"/>
+  <exclude domain="file" path="secure_media/"/>
+  <exclude domain="cache" path="."/>
+  <exclude domain="external" path="."/>
+  <exclude domain="root" path="."/>
+</full-backup-content>

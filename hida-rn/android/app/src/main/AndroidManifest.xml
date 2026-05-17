@@ -1,0 +1,130 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Hida is fully offline. INTERNET / RECORD_AUDIO / SYSTEM_ALERT_WINDOW /
+       READ_EXTERNAL_STORAGE / WRITE_EXTERNAL_STORAGE were unused and have been
+       dropped to shrink the attack surface. Imports use Storage Access Framework. -->
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+  <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+  <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+  <uses-permission android:name="android.permission.VIBRATE"/>
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW"/>
+      <category android:name="android.intent.category.BROWSABLE"/>
+      <data android:scheme="https"/>
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW"/>
+      <data android:mimeType="*/*"/>
+    </intent>
+  </queries>
+  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false" android:theme="@style/AppTheme" android:supportsRtl="true" android:enableOnBackInvokedCallback="false" android:fullBackupContent="@xml/secure_store_backup_rules" android:dataExtractionRules="@xml/secure_store_data_extraction_rules">
+    <!-- FileProvider for sharing decrypted temp files with external viewers -->
+    <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+            android:name="android.support.FILE_PROVIDER_PATHS"
+            android:resource="@xml/file_paths" />
+    </provider>
+    <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
+    <!-- MainActivity carries no exported intent filters of its own; the launcher
+         is reached via the disguise-aliases below. exported="false" closes off
+         deep-link entry points that could launch the app from arbitrary contexts. -->
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="false"/>
+
+    <!-- Default Hida icon. One of the aliases below is always the single enabled launcher. -->
+    <activity-alias android:name=".HidaDefaultAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:label="@string/app_name" android:enabled="true" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+
+    <!-- App Icon Disguise: Activity Aliases -->
+    <activity-alias android:name=".CalculatorAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_calculator" android:roundIcon="@mipmap/ic_disguise_calculator" android:label="Calculator" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".WeatherAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_weather" android:roundIcon="@mipmap/ic_disguise_weather" android:label="Weather" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".NotesAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_notes" android:roundIcon="@mipmap/ic_disguise_notes" android:label="Keep Notes" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".ClockAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_clock" android:roundIcon="@mipmap/ic_disguise_clock" android:label="Clock" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MusicAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_music" android:roundIcon="@mipmap/ic_disguise_music" android:label="YT Music" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".CalendarAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_calendar" android:roundIcon="@mipmap/ic_disguise_calendar" android:label="Calendar" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MailAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_mail" android:roundIcon="@mipmap/ic_disguise_mail" android:label="Gmail" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".BrowserAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_browser" android:roundIcon="@mipmap/ic_disguise_browser" android:label="Chrome" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".CameraAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_camera" android:roundIcon="@mipmap/ic_disguise_camera" android:label="Camera" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MapsAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_maps" android:roundIcon="@mipmap/ic_disguise_maps" android:label="Maps" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".PhoneAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_phone" android:roundIcon="@mipmap/ic_disguise_phone" android:label="Phone" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".ContactsAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_contacts" android:roundIcon="@mipmap/ic_disguise_contacts" android:label="Contacts" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".MessagesAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_messages" android:roundIcon="@mipmap/ic_disguise_messages" android:label="Messages" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".PlayStoreAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_playstore" android:roundIcon="@mipmap/ic_disguise_playstore" android:label="Play Store" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".DriveAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_drive" android:roundIcon="@mipmap/ic_disguise_drive" android:label="Drive" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".FilesAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_files" android:roundIcon="@mipmap/ic_disguise_files" android:label="Files" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".WalletAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_wallet" android:roundIcon="@mipmap/ic_disguise_wallet" android:label="Google Pay" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".BankingAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_banking" android:roundIcon="@mipmap/ic_disguise_banking" android:label="PayPal" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".ShoppingAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_shopping" android:roundIcon="@mipmap/ic_disguise_shopping" android:label="Amazon" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".VideosAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_videos" android:roundIcon="@mipmap/ic_disguise_videos" android:label="YouTube" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".ChatAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_chat" android:roundIcon="@mipmap/ic_disguise_chat" android:label="WhatsApp" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".PhotosAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_photos" android:roundIcon="@mipmap/ic_disguise_photos" android:label="Photos" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".SettingsAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_settings" android:roundIcon="@mipmap/ic_disguise_settings" android:label="Settings" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".NewsAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_news" android:roundIcon="@mipmap/ic_disguise_news" android:label="Google News" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".FitnessAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_fitness" android:roundIcon="@mipmap/ic_disguise_fitness" android:label="Google Fit" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".TranslateAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_translate" android:roundIcon="@mipmap/ic_disguise_translate" android:label="Google Translate" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".CalculatorMaterialAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_calculator_material" android:roundIcon="@mipmap/ic_disguise_calculator_material" android:label="Calculator" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+    <activity-alias android:name=".CalculatorIosAlias" android:targetActivity=".MainActivity" android:icon="@mipmap/ic_disguise_calculator_ios" android:roundIcon="@mipmap/ic_disguise_calculator_ios" android:label="Calc" android:enabled="false" android:exported="true">
+      <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+    </activity-alias>
+  </application>
+</manifest>

@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Rounded “phone calc” tile (original artwork, not iOS asset) -->
+    <path
+        android:pathData="M30,30 L78,30 Q88,30 88,40 L88,68 Q88,78 78,78 L30,78 Q20,78 20,68 L20,40 Q20,30 30,30 Z"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M26,46 L82,46"
+        android:strokeColor="#16140F"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M34,56 A4,4 0 1,1 34.01,56 M48,56 A4,4 0 1,1 48.01,56 M62,56 A4,4 0 1,1 62.01,56 M76,56 A4,4 0 1,1 76.01,56"
+        android:strokeColor="#16140F"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M34,68 A4,4 0 1,1 34.01,68 M48,68 A4,4 0 1,1 48.01,68 M62,68 A4,4 0 1,1 62.01,68"
+        android:strokeColor="#16140F"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000" />
+</vector>

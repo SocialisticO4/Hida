@@ -1,0 +1,13 @@
+<resources>
+  <!--
+    Cream paper / ink palette per the Calculator construction kit design tokens.
+    iconBackground is the adaptive-icon background tile that hosts the lock glyph.
+    splashscreen_background is the cold-start flash before the JS bundle attaches —
+    we keep it on the same cream so users don't see a dark flash transitioning to a
+    cream UI.
+  -->
+  <color name="splashscreen_background">#F5F1EA</color>
+  <color name="iconBackground">#F5F1EA</color>
+  <color name="colorPrimary">#16140F</color>
+  <color name="colorPrimaryDark">#16140F</color>
+</resources>

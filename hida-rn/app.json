@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Hida",
+    "slug": "hida",
+    "version": "2.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "hida",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F1EA"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F5F1EA"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "app.hida.vault"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-screen-orientation",
+      ["expo-video", { "supportsPictureInPicture": false }],
+      "expo-secure-store",
+      "expo-local-authentication",
+      "expo-audio"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ Data Extraction Rules. Both `cloud-backup` and `device-transfer`
+  are explicitly excluded for every app data domain so that:
+    - cloud auto-backup never carries the wrapped key, salt, or vault contents,
+    - device-to-device transfer (Samsung Smart Switch, Pixel migrate) cannot
+      copy the vault to the new device.
+-->
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="sharedpref" path="secure_prefs.xml"/>
+    <exclude domain="file" path="secure_media/"/>
+    <exclude domain="cache" path="."/>
+    <exclude domain="external" path="."/>
+    <exclude domain="root" path="."/>
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="sharedpref" path="secure_prefs.xml"/>
+    <exclude domain="file" path="secure_media/"/>
+    <exclude domain="cache" path="."/>
+    <exclude domain="external" path="."/>
+    <exclude domain="root" path="."/>
+  </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Generic shopping bag -->
+    <path
+        android:pathData="M34,42 L38,76 Q38,82 44,82 L64,82 Q70,82 70,76 L74,42"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M42,42 Q42,30 54,30 Q66,30 66,42"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+</vector>

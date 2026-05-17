@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Generic chat bubble -->
+    <path
+        android:pathData="M28,34 Q28,28 34,28 L74,28 Q80,28 80,34 L80,54 Q80,60 74,60 L44,60 L34,72 L36,60 L34,60 Q28,60 28,54 Z"
+        android:strokeColor="#16140F"
+        android:strokeWidth="3"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

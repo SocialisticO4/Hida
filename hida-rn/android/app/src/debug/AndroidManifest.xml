@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Dev-build-only permissions. Release builds do not include these, so
+      the shipped APK stays fully offline + no overlay capability.
+        - INTERNET: Metro bundler / React Native dev client fetch from localhost:8081.
+                    Even loopback traffic requires INTERNET on Android.
+        - SYSTEM_ALERT_WINDOW: RN dev menu overlay (shake-to-debug / red box).
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <application android:usesCleartextTraffic="true" tools:targetApi="28" tools:ignore="GoogleAppIndexingWarning" tools:replace="android:usesCleartextTraffic" />
+</manifest>
+
