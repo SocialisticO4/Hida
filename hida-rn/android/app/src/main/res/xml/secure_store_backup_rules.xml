@@ -9,7 +9,6 @@
 <full-backup-content>
   <exclude domain="sharedpref" path="secure_prefs.xml"/>
   <exclude domain="file" path="secure_media/"/>
-  <exclude domain="cache" path="."/>
   <exclude domain="external" path="."/>
   <exclude domain="root" path="."/>
 </full-backup-content>

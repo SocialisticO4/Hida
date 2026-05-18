@@ -10,14 +10,12 @@
   <cloud-backup>
     <exclude domain="sharedpref" path="secure_prefs.xml"/>
     <exclude domain="file" path="secure_media/"/>
-    <exclude domain="cache" path="."/>
     <exclude domain="external" path="."/>
     <exclude domain="root" path="."/>
   </cloud-backup>
   <device-transfer>
     <exclude domain="sharedpref" path="secure_prefs.xml"/>
     <exclude domain="file" path="secure_media/"/>
-    <exclude domain="cache" path="."/>
     <exclude domain="external" path="."/>
     <exclude domain="root" path="."/>
   </device-transfer>
